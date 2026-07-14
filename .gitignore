@@ -1,0 +1,21 @@
+# Dependências
+node_modules/
+
+# Build
+dist/
+
+# Variáveis de ambiente
+.env
+.env.*
+!.env.example
+
+# Banco de dados local
+prisma/dev.db
+prisma/dev.db-journal
+
+# Logs
+npm-debug.log*
+
+# Editor
+.vscode/
+.DS_Store
