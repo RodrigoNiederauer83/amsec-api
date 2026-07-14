@@ -14,34 +14,34 @@ Base de API REST com autenticação (cadastro e login) usando JWT, pensada para 
 ## Como rodar
 
 1. Instale as dependências:
-   \`\`\`bash
+   ```bash
    npm install
-   \`\`\`
+   ```
 
 2. Copie o arquivo de variáveis de ambiente:
-   \`\`\`bash
+   ```bash
    cp .env.example .env
-   \`\`\`
+   ```
    Preencha o `JWT_SECRET` com uma string aleatória de pelo menos 10 caracteres.
 
 3. Rode as migrations do banco:
-   \`\`\`bash
+   ```bash
    npx prisma migrate dev
    npx prisma generate
-   \`\`\`
+   ```
 
 4. Suba o servidor em modo desenvolvimento:
-   \`\`\`bash
+   ```bash
    npm run dev
-   \`\`\`
+   ```
 
 ## Documentação da API
 
 Com o servidor rodando, acesse:
 
-\`\`\`
+```
 http://localhost:3333/docs
-\`\`\`
+```
 
 A documentação interativa (Swagger UI) lista todas as rotas disponíveis, seus parâmetros esperados e permite testar diretamente pelo navegador, incluindo rotas protegidas (via botão "Authorize").
 
@@ -53,7 +53,7 @@ A documentação interativa (Swagger UI) lista todas as rotas disponíveis, seus
 
 ## Estrutura do projeto
 
-\`\`\`
+```
 src/
 ├── config/         # configuração de ambiente, Zod/OpenAPI
 ├── controllers/    # lógica de cada rota
@@ -62,7 +62,7 @@ src/
 ├── routes/          # definição dos endpoints
 ├── schemas/         # schemas Zod (validação + documentação)
 └── server.ts         # ponto de entrada
-\`\`\`
+```
 
 ## Usando este projeto como base
 
