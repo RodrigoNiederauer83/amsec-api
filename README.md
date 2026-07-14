@@ -1,6 +1,6 @@
-# API de Autenticação — Boilerplate
+# amsec-api
 
-Base de API REST com autenticação (cadastro e login) usando JWT, pensada para ser ponto de partida de novos projetos.
+API REST com autenticação (cadastro e login) e gerenciamento de grupos de amigo secreto (amigo oculto), usando JWT.
 
 ## Stack
 
@@ -47,28 +47,47 @@ A documentação interativa (Swagger UI) lista todas as rotas disponíveis, seus
 
 ## Rotas disponíveis
 
+### Autenticação
+
 - `POST /auth/register` — cadastro de usuário
 - `POST /auth/login` — login (retorna JWT)
 - `GET /auth/me` — dados do usuário logado (rota protegida)
+
+### Grupos de amigo secreto
+
+Todas as rotas abaixo exigem autenticação (JWT).
+
+- `POST /groups` — cria um novo grupo. Quem cria vira automaticamente o responsável (owner) e já é adicionado como membro.
+- `POST /groups/:id/invite` — gera (ou regenera) o link de convite do grupo. Apenas o responsável pode chamar essa rota. Cada grupo tem no máximo um convite ativo por vez, válido por 7 dias — gerar um novo invalida o anterior.
+- `GET /groups/invite/:token` — pré-visualiza um grupo a partir do token de convite (nome, responsável e membros atuais), mesmo para quem ainda não é membro. É o único ponto de entrada em um grupo novo.
+- `POST /groups/invite/:token/join` — aceita o convite e efetivamente entra no grupo.
+- `GET /groups?owner=&name=` — busca **entre os grupos que o usuário já participa**, filtrando por nome do responsável e/ou nome do grupo (busca parcial). Retorna sempre uma lista, mesmo com um único resultado.
+- `GET /groups/:id` — detalhes de um grupo específico (responsável e lista de membros). Só acessível a quem já é membro do grupo.
+
+> Por privacidade, um usuário só consegue ver ou buscar grupos dos quais já faça parte. A única forma de descobrir e entrar em um grupo novo é através do link de convite (`token`), compartilhado pelo responsável fora da aplicação (WhatsApp, Telegram, e-mail, etc.).
+
+## Modelo de dados
+
+- **User** — usuário cadastrado na aplicação.
+- **Group** — grupo de amigo secreto, com um responsável (`owner`).
+- **GroupMember** — relação de participação entre `User` e `Group` (o responsável também é um membro).
+- **GroupInvite** — convite ativo de um grupo, identificado por um token único e com data de expiração.
 
 ## Estrutura do projeto
 
 ```
 src/
-├── config/         # configuração de ambiente, Zod/OpenAPI
+├── config/         # configuração de ambiente, Zod/OpenAPI (registry por domínio: auth, groups)
 ├── controllers/    # lógica de cada rota
-├── middlewares/     # autenticação, validação, tratamento de erros
-├── prisma/          # cliente do Prisma
-├── routes/          # definição dos endpoints
-├── schemas/         # schemas Zod (validação + documentação)
-└── server.ts         # ponto de entrada
+├── middlewares/    # autenticação, validação, tratamento de erros
+├── prisma/         # cliente do Prisma
+├── routes/         # definição dos endpoints
+├── schemas/        # schemas Zod (validação + documentação)
+├── types/          # extensões de tipos (ex: req.userId)
+└── server.ts       # ponto de entrada
 ```
 
-## Usando este projeto como base
+## Roadmap
 
-Este repositório foi pensado como ponto de partida para novos projetos. Para reutilizar:
-
-1. Clone (ou use como template no GitHub)
-2. Ajuste o `name` no `package.json`
-3. Configure um novo `.env` com suas próprias credenciais
-4. Adicione novos models no `prisma/schema.prisma` conforme a necessidade do novo projeto
+- [ ] Gerenciamento de grupo: transferência de responsável, remoção de membro
+- [ ] Sorteio de amigo secreto
