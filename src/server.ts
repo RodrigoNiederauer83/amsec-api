@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import swaggerUi from "swagger-ui-express";
 import authRoutes from "./routes/authRoutes";
+import groupRoutes from "./routes/groupRoutes";
 import { errorMiddleware } from "./middlewares/errorMiddleware";
 import { env } from "./config/env";
 import { openapiDocument } from "./config/openapiDocument";
@@ -13,6 +14,7 @@ app.use(cors());
 app.use(express.json());
 
 app.use("/auth", authRoutes);
+app.use("/groups", groupRoutes);
 
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(openapiDocument));
 
