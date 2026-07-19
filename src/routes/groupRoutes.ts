@@ -17,6 +17,7 @@ import { validate } from "../middlewares/validationMiddleware";
 import {
     createExclusionSchema,
     createGroupSchema,
+    drawQuerySchema,
     groupIdParamSchema,
     searchGroupsQuerySchema
 } from "../schemas/groupSchemas";
@@ -48,7 +49,13 @@ router.delete(
   validate(groupIdParamSchema, "params"),
   deleteExclusion
 );
-router.post("/:id/draw", authMiddleware, validate(groupIdParamSchema, "params"), drawGroup);
+router.post(
+  "/:id/draw",
+  authMiddleware,
+  validate(groupIdParamSchema, "params"),
+  validate(drawQuerySchema, "query"),
+  drawGroup
+);
 router.get("/:id/assignment", authMiddleware, validate(groupIdParamSchema, "params"), getMyAssignment);
 
 export default router;

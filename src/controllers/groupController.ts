@@ -307,7 +307,8 @@ export const deleteExclusion: RequestHandler = async (req, res) => {
 
 export const drawGroup: RequestHandler = async (req, res) => {
   const groupId = Number(req.params.id);
-  const requesterId = req.userId;
+  const requesterId = req.userId!;
+  const force = req.query.force = "true";
 
   const group = await prisma.group.findUnique({ where: { id: groupId } });
 
@@ -322,10 +323,10 @@ export const drawGroup: RequestHandler = async (req, res) => {
   const existingAssignments = await prisma.assignment.findMany({ where: { groupId } });
   const alreadyViewed = existingAssignments.some((a) => a.viewedAt !== null);
 
-  if (alreadyViewed) {
+  if (alreadyViewed && !force) {
     return res.status(409).json({
-      error: "O sorteio já foi visualizado por algum participante e não pode ser refeito."
-    })
+      error: "O sorteio já foi visualizado por algum participante. Use ?force=true para refazer mesmo assim.",
+    });
   }
 
   const members = await prisma.groupMember.findMany({ where: { groupId } });

@@ -106,3 +106,7 @@ export const myAssignmentResponseSchema = z.object({
     name: z.string().nullable().openapi({ example: "Maria Souza" }),
   }),
 });
+
+export const drawQuerySchema = z.object({
+  force: z.enum(["true", "false"]).optional().openapi({ example: "true" }),
+});
