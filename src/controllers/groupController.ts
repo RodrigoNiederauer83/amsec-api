@@ -1,6 +1,6 @@
 import { Request, RequestHandler, Response } from "express";
 import { prisma } from "../prisma/client";
-import { GroupIdParams } from "../schemas/groupSchemas";
+import { generateDraw } from "../utils/drawAlgorithm";
 
 import crypto from "crypto";
 
@@ -201,4 +201,186 @@ export const getGroupDetail: RequestHandler = async (req, res) => {
     owner: group.owner,
     members: group.members.map((m) => m.user),
   });
+};
+
+function normalizePair(a: number, b: number) {
+  return a < b ? { userAId: a, userBId: b } : { userAId: b, userBId: a };
+}
+
+export const createExclusion: RequestHandler = async (req, res) => {
+  const groupId = Number(req.params.id);
+  const requesterId = req.userId!;
+  const { userAId, userBId } = req.body;
+
+  const group = await prisma.group.findUnique({ where: { id: groupId } });
+
+  if (!group) {
+    return res.status(404).json({ error: "Grupo não encontrado." });
+  }
+
+  if (group.ownerId !== requesterId) {
+    return res.status(403).json({ error: "Apenas o responsável pode gerenciar exclusões."});
+  }
+
+  const members = await prisma.groupMember.findMany({
+    where: { groupId, userId: { in: [userAId, userBId] } },
+  });
+
+  if (members.length !== 2) {
+    return res.status(422).json({ error: "Ambos os usuários precisam ser membros do grupo." })
+  }
+
+  const { userAId: normA, userBId: normB } = normalizePair(userAId, userBId);
+
+  try {
+    const exclusion = await prisma.groupExclusion.create({
+      data: { groupId, userAId: normA, userBId: normB },
+      include: {
+        userA: { select: { id: true, name: true } },
+        userB: { select: { id: true, name: true } },
+      }
+    });
+
+    return res.status(201).json(exclusion);
+  } catch (error: any) {
+    if (error === "P2002") {
+      return res.status(409).json({ error: "Essa exclusão já existe." });
+    }
+    throw error;
+  }
+}
+
+export const listExclusions: RequestHandler = async (req, res) => {
+  const groupId = Number(req.params.id);
+  const requesterId = req.userId!;
+
+  const membership = await prisma.groupMember.findUnique({
+    where: { groupId_userId: { groupId, userId: requesterId } },
+  });
+
+  if (!membership) {
+    return res.status(403).json({ error: "Você não faz parte deste grupo." });
+  }
+
+  const exclusions = await prisma.groupExclusion.findMany({
+    where: { groupId },
+    include: {
+      userA: { select: { id: true, name: true } },
+      userB: { select: { id: true, name: true } },
+    },
+  });
+
+  return res.status(200).json(exclusions);
+}
+
+export const deleteExclusion: RequestHandler = async (req, res) => {
+  const groupId = Number(req.params.id);
+  const exclusionId = Number(req.params.exclusionId);
+  const requesterId = req.userId!;
+
+  const group = await prisma.group.findUnique({
+    where : { id: groupId },
+  });
+
+  if (!group) {
+    return res.status(404).json({ error: "Grupo não encontrado." })
+  }
+
+  if (group.ownerId !== requesterId) {
+    return res.status(403).json({ error: "Apenas o responsável pode gerenciar exclusões." });
+  }
+
+  const exclusion = await prisma.groupExclusion.findUnique({
+    where: { id: exclusionId },
+  });
+
+  if (!exclusion || exclusion.id !== exclusionId) {
+    return res.status(404).json({ error: "Exclusão não encontrada." });
+  }
+
+  await prisma.groupExclusion.delete({
+    where: { id: exclusionId },
+  });
+
+  return res.status(204).send();
+}
+
+export const drawGroup: RequestHandler = async (req, res) => {
+  const groupId = Number(req.params.id);
+  const requesterId = req.userId;
+
+  const group = await prisma.group.findUnique({ where: { id: groupId } });
+
+  if (!group) {
+    return res.status(404).json({ error: "Grupo não encontrado." });
+  }
+
+  if (group.ownerId !== requesterId) {
+    return res.status(403).json({ error: "Apenas o responsável pode realizar o sorteio." });
+  }
+
+  const existingAssignments = await prisma.assignment.findMany({ where: { groupId } });
+  const alreadyViewed = existingAssignments.some((a) => a.viewedAt !== null);
+
+  if (alreadyViewed) {
+    return res.status(409).json({
+      error: "O sorteio já foi visualizado por algum participante e não pode ser refeito."
+    })
+  }
+
+  const members = await prisma.groupMember.findMany({ where: { groupId } });
+  const memberIds = members.map((m) => m.userId);
+
+  if (memberIds.length < 3) {
+    return res.status(422).json({ error: "É necessário pelo menos 3 membros para realiza o sorteio." });
+  }
+
+  const exclusions = await prisma.groupExclusion.findMany({ where: { groupId } });
+
+  const result = generateDraw(memberIds, exclusions);
+
+  if (!result) {
+    return res.status(422).json({
+      error: "Não foi possível gerar um sorteio válido com as exclusões atuais.",
+    });
+  }
+
+  await prisma.$transaction([
+    prisma.assignment.deleteMany({ where: { groupId } }),
+    prisma.assignment.createMany({
+      data: Array.from(result.entries()).map(([giverId, receiverId]) => ({
+        groupId, giverId, receiverId,
+      })),
+    }),
+  ]);
+
+  return res.status(200).json({
+    message: "Sorteio realizado com sucesso.",
+    participantsCount: memberIds.length,
+  });
+}
+
+export const getMyAssignment: RequestHandler = async (req, res) => {
+  const groupId = Number(req.params.id);
+  const requesterId = req.userId!;
+
+  const assignment = await prisma.assignment.findUnique({
+    where: { groupId_giverId: { groupId, giverId: requesterId } },
+    include: {
+      receiver: { select: { id: true, name: true } },
+    },
+  });
+
+  if (!assignment) {
+    return res.status(404).json({ error: "Sorteio ainda não foi realizado para este grupo." });
+  }
+
+  if (!assignment.viewedAt) {
+    await prisma.assignment.update({
+      where: { id: assignment.id },
+      data: { viewedAt: new Date() },
+    });
+  }
+
+  return res.status(200).json({ receiver: assignment.receiver });
 };

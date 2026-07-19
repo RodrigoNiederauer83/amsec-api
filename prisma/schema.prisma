@@ -15,6 +15,10 @@ model User {
 
   ownedGroups Group[]       @relation("GroupOwner")
   memberships GroupMember[] @relation("GroupMembership")
+  exclusionsAsUserA  GroupExclusion[] @relation("ExclusionA")
+  exclusionsAsUserB  GroupExclusion[] @relation("ExclusionB")
+  assignmentsAsGiver    Assignment[]  @relation("AssignmentGiver")
+  assignmentsAsReceiver Assignment[]  @relation("AssignmentReceiver")
 }
 
 model Group {
@@ -22,8 +26,10 @@ model Group {
   name    String
   ownerId Int
   owner   User          @relation("GroupOwner", fields: [ownerId], references: [id], onDelete: Restrict)
-  members GroupMember[]
   invite  GroupInvite?
+  members GroupMember[]
+  exclusions GroupExclusion[]
+  assignments Assignment[]
 
   @@unique([ownerId, name])
 }
@@ -45,4 +51,31 @@ model GroupInvite {
   token     String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
+}
+
+model GroupExclusion {
+  id  Int   @id @default(autoincrement())
+  groupId Int
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userAId Int
+  userBId Int
+  userA User @relation("ExclusionA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB User @relation("ExclusionB", fields: [userBId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userAId, userBId])
+}
+
+model Assignment {
+  id         Int       @id @default(autoincrement())
+  groupId    Int
+  group      Group     @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  giverId    Int
+  receiverId Int
+  giver      User      @relation("AssignmentGiver", fields: [giverId], references: [id], onDelete: Cascade)
+  receiver   User      @relation("AssignmentReceiver", fields: [receiverId], references: [id], onDelete: Cascade)
+  viewedAt   DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@unique([groupId, giverId])
+  @@unique([groupId, receiverId])
 }

@@ -73,3 +73,36 @@ export const groupDetailResponseSchema = z.object({
     })
   ),
 });
+
+// O .refine(...) adiciona uma regra de validação customizada, 
+// que não dá pra expressar só com os tipos (z.number(), etc) 
+// — aqui, "os dois ids não podem ser iguais". 
+// Se a condição no primeiro argumento retornar false, 
+// cai no erro com a mensagem e o path indicados 
+// (o path: ["userBId"] só ajuda a apontar o erro pro campo certo na resposta de validação).
+export const createExclusionSchema = z.object({
+  userAId: z.number().int().positive().openapi({ example: 2 }),
+  userBId: z.number().int().positive().openapi({ example: 3 }),
+})
+.refine((data) => data.userAId !== data.userBId, {
+  message: "Não é possível excluir um usuário dele mesmo.",
+  path: ["userBId"]
+})
+
+export const exclusionResponseSchema = z.object({
+  id: z.number().openapi({ example: 1 }),
+  userA: z.object({ id: z.number(), name: z.string().nullable() }),
+  userB: z.object({ id: z.number(), name: z.string().nullable() }),
+});
+
+export const drawResponseSchema = z.object({
+  message: z.string().openapi({ example: "Sorteio realizado com sucesso." }),
+  participantsCount: z.number().openapi({ example: 5 }),
+});
+
+export const myAssignmentResponseSchema = z.object({
+  receiver: z.object({
+    id: z.number().openapi({ example: 3 }),
+    name: z.string().nullable().openapi({ example: "Maria Souza" }),
+  }),
+});
