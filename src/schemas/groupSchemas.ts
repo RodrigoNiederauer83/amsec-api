@@ -74,6 +74,24 @@ export const groupDetailResponseSchema = z.object({
   ),
 });
 
+export const groupSettingsResponseSchema = z.object({
+  eventDate: z.string().nullable().openapi({ example: "2026-12-24T20:00:00.000Z" }),
+  minGiftCents: z.number().nullable().openapi({ example: 2000 }),
+  maxGiftCents: z.number().nullable().openapi({ example: 5000 }),
+  eventAddress: z.string().nullable().openapi({ example: "Rua das Flores, 123 - Centro, São Paulo" }),
+  eventLat: z.number().nullable().openapi({ example: -23.5505 }),
+  eventLng: z.number().nullable().openapi({ example: -46.6333 }),
+});
+
+export const updateGroupSettingsSchema = z.object({
+  eventDate: z.iso.datetime().optional().openapi({ example: "2026-12-24T20:00:00.000Z" }),
+  minGiftCents: z.number().int().nonnegative().optional().openapi({ example: 2000 }),
+  maxGiftCents: z.number().int().nonnegative().optional().openapi({ example: 5000 }),
+  eventAddress: z.string().max(300).optional().openapi({ example: "Rua das Flores, 123 - Centro, São Paulo" }),
+  eventLat: z.number().min(-90).max(90).optional().openapi({ example: -23.5505 }),
+  eventLng: z.number().min(-180).max(180).optional().openapi({ example: -46.6333 }),
+});
+
 // O .refine(...) adiciona uma regra de validação customizada, 
 // que não dá pra expressar só com os tipos (z.number(), etc) 
 // — aqui, "os dois ids não podem ser iguais". 
@@ -109,4 +127,27 @@ export const myAssignmentResponseSchema = z.object({
 
 export const drawQuerySchema = z.object({
   force: z.enum(["true", "false"]).optional().openapi({ example: "true" }),
+});
+
+export const createSuggestionSchema = z.object({
+  content: z.string().min(1, "A sugestão não pode ser vazia.").max(150, "Máximo de 150 caracteres.").openapi({ example: "Um livro de ficção científica" }),
+});
+
+export const updateSuggestionSchema = z.object({
+  content: z.string().min(1, "A sugestão não pode ser vazia.").max(150, "Máximo de 150 caracteres.").openapi({ example: "Um livro de ficção científica, de preferência da Ursula K. Le Guin" }),
+});
+
+export const suggestionResponseSchema = z.object({
+  id: z.number().openapi({ example: 1 }),
+  content: z.string().openapi({ example: "Um livro de ficção científica" }),
+  createdAt: z.string().openapi({ example: "2026-07-19T12:00:00.000Z" }),
+  updatedAt: z.string().openapi({ example: "2026-07-19T12:00:00.000Z" }),
+  user: z.object({
+    id: z.number().openapi({ example: 2 }),
+    name: z.string().nullable().openapi({ example: "Maria Souza" }),
+  }),
+});
+
+export const listSuggestionsQuerySchema = z.object({
+  userId: z.string().regex(/^\d+$/, "userId deve ser um número.").optional(),
 });

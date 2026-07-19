@@ -203,6 +203,59 @@ export const getGroupDetail: RequestHandler = async (req, res) => {
   });
 };
 
+export const updateGroupSettings: RequestHandler = async (req, res) => {
+  const groupId = Number(req.params.id);
+  const requesterId = req.userId!;
+  const { eventDate, minGiftCents, maxGiftCents, eventAddress, eventLat, eventLng } = req.body;
+
+  const group = await prisma.group.findUnique({ where: { id: groupId } });
+
+  if (!group) {
+    return res.status(404).json({ error: "Grupo não encontrado." });
+  }
+
+  if (group.ownerId !== requesterId) {
+    return res.status(403).json({ error: "Apenas o responsável pode alterar as configurações." });
+  }
+
+  const finalMin = minGiftCents ?? group.minGiftCents;
+  const finalMax = maxGiftCents ?? group.maxGiftCents;
+
+  if (finalMin !== null && finalMax !== null && finalMin > finalMax) {
+    return res.status(422).json({ error: "O valor mínimo não pode ser maior que o valor máximo." });
+  }
+
+  const finalLat = eventLat ?? group.eventLat;
+  const finalLng = eventLng ?? group.eventLng;
+
+  if ((finalLat === null) !== (finalLng === null)) {
+    return res.status(422).json({
+      error: "Latitude e longitude precisam ser fornecidas juntas.",
+    });
+  }
+
+  const updated = await prisma.group.update({
+    where: { id: groupId },
+    data: {
+      ...(eventDate !== undefined && { eventDate: new Date(eventDate) }),
+      ...(minGiftCents !== undefined && { minGiftCents }),
+      ...(maxGiftCents !== undefined && { maxGiftCents }),
+      ...(eventAddress !== undefined && { eventAddress }),
+      ...(eventLat !== undefined && { eventLat }),
+      ...(eventLng !== undefined && { eventLng }),
+    },
+  });
+
+  return res.status(200).json({
+    eventDate: updated.eventDate,
+    minGiftCents: updated.minGiftCents,
+    maxGiftCents: updated.maxGiftCents,
+    eventAddress: updated.eventAddress,
+    eventLat: updated.eventLat,
+    eventLng: updated.eventLng,
+  });
+};
+
 function normalizePair(a: number, b: number) {
   return a < b ? { userAId: a, userBId: b } : { userAId: b, userBId: a };
 }
@@ -385,3 +438,101 @@ export const getMyAssignment: RequestHandler = async (req, res) => {
 
   return res.status(200).json({ receiver: assignment.receiver });
 };
+
+async function assertIsMember(groupId: number, userId: number) {
+  const membership = await prisma.groupMember.findUnique({
+    where: { groupId_userId: { groupId, userId } },
+  });
+  return !!membership;
+}
+
+export const createSuggestion: RequestHandler = async (req, res) => {
+  const groupId = Number(req.params.id);
+  const userId = req.userId!;
+  const { content } = req.body;
+
+  const isMember = await assertIsMember(groupId, userId);
+
+  if (!isMember) {
+    return res.status(403).json({ error: "Você não faz parte deste grupo." });
+  }
+
+  const suggestion = await prisma.giftSuggestion.create({
+    data: { groupId, userId, content },
+    include: { user: { select: { id: true, name: true }  } },
+  })
+
+  return res.status(201).json(suggestion);
+}
+
+export const listSuggestions: RequestHandler = async (req, res) => {
+  const groupId = Number(req.params.id);
+  const userId = req.userId!;
+  const filterUserId = req.query.userId;
+
+  const isMember = await assertIsMember(groupId, userId);
+
+  if (!isMember) {
+    return res.status(403).json({ error: "Você não faz parte deste grupo." });
+  }
+
+  const suggestions = await prisma.giftSuggestion.findMany({
+    where: {
+      groupId,
+      ...(typeof filterUserId === "string" && { userId: Number(filterUserId) }),
+    },
+    include: { user: { select: { id: true, name: true } } },
+    orderBy: { user: { name: "asc" } },
+  });
+
+  return res.status(200).json(suggestions);
+};
+
+export const updateSuggestion: RequestHandler = async (req, res) => {
+  const suggestionId = Number(req.params.suggestionId);
+  const groupId = Number(req.params.id);
+  const userId = req.userId;
+  const { content } = req.body;
+
+  const suggestion = await prisma.giftSuggestion.findUnique({
+    where: { id: suggestionId },
+  })
+
+  if (!suggestion || suggestion.groupId !== groupId) {
+    return res.status(404).json({ error: "Sugestão não encontrada." });
+  }
+
+  if (suggestion.userId !== userId) {
+    return res.status(403).json({ error: "Você só pode editar suas próprias sugestões." })
+  }
+
+  const updated = await prisma.giftSuggestion.update({
+    where: { id: suggestionId },
+    data: { content },
+    include: { user: { select: { id: true, name: true } } },
+  });
+
+  return res.status(200).json(updated);
+}
+
+export const deleteSuggestion: RequestHandler = async (req, res) => {
+  const suggestionId = Number(req.params.suggestionId);
+  const groupId = Number(req.params.id);
+  const userId = req.userId;
+
+  const suggestion = await prisma.giftSuggestion.findUnique({
+    where: { id: suggestionId },
+  });
+
+  if (!suggestion || suggestion.groupId !== groupId) {
+    return res.status(404).json({ error: "Sugestão não encontrada." });
+  }
+
+  if (suggestion.userId !== userId) {
+    return res.status(403).json({ error: "Você só pode excluir suas próprias sugestões." });
+  }
+
+  await prisma.giftSuggestion.delete({ where: { id: suggestionId } });
+
+  return res.status(204).send();
+}

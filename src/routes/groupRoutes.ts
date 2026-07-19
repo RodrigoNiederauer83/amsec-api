@@ -10,16 +10,25 @@ import {
     joinGroupViaInvite,
     listExclusions,
     searchGroups,
-    getMyAssignment
+    getMyAssignment,
+    createSuggestion,
+    listSuggestions,
+    updateSuggestion,
+    deleteSuggestion,
+    updateGroupSettings
 } from "../controllers/groupController";
 import { authMiddleware } from "../middlewares/authMiddleware";
 import { validate } from "../middlewares/validationMiddleware";
 import {
     createExclusionSchema,
     createGroupSchema,
+    createSuggestionSchema,
     drawQuerySchema,
     groupIdParamSchema,
-    searchGroupsQuerySchema
+    listSuggestionsQuerySchema,
+    searchGroupsQuerySchema,
+    updateGroupSettingsSchema,
+    updateSuggestionSchema
 } from "../schemas/groupSchemas";
 
 const router = Router();
@@ -57,5 +66,39 @@ router.post(
   drawGroup
 );
 router.get("/:id/assignment", authMiddleware, validate(groupIdParamSchema, "params"), getMyAssignment);
+router.post(
+  "/:id/suggestions",
+  authMiddleware,
+  validate(groupIdParamSchema, "params"),
+  validate(createSuggestionSchema, "body"),
+  createSuggestion
+);
+router.get(
+  "/:id/suggestions",
+  authMiddleware,
+  validate(groupIdParamSchema, "params"),
+  validate(listSuggestionsQuerySchema, "query"),
+  listSuggestions
+);
+router.patch(
+  "/:id/suggestions/:suggestionId",
+  authMiddleware,
+  validate(groupIdParamSchema, "params"),
+  validate(updateSuggestionSchema, "body"),
+  updateSuggestion
+);
+router.delete(
+  "/:id/suggestions/:suggestionId",
+  authMiddleware,
+  validate(groupIdParamSchema, "params"),
+  deleteSuggestion
+);
+router.patch(
+  "/:id/settings",
+  authMiddleware,
+  validate(groupIdParamSchema, "params"),
+  validate(updateGroupSettingsSchema, "body"),
+  updateGroupSettings
+);
 
 export default router;

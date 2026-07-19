@@ -13,23 +13,31 @@ model User {
   name      String?
   createdAt DateTime @default(now())
 
-  ownedGroups Group[]       @relation("GroupOwner")
-  memberships GroupMember[] @relation("GroupMembership")
-  exclusionsAsUserA  GroupExclusion[] @relation("ExclusionA")
-  exclusionsAsUserB  GroupExclusion[] @relation("ExclusionB")
-  assignmentsAsGiver    Assignment[]  @relation("AssignmentGiver")
-  assignmentsAsReceiver Assignment[]  @relation("AssignmentReceiver")
+  ownedGroups           Group[]          @relation("GroupOwner")
+  memberships           GroupMember[]    @relation("GroupMembership")
+  exclusionsAsUserA     GroupExclusion[] @relation("ExclusionA")
+  exclusionsAsUserB     GroupExclusion[] @relation("ExclusionB")
+  assignmentsAsGiver    Assignment[]     @relation("AssignmentGiver")
+  assignmentsAsReceiver Assignment[]     @relation("AssignmentReceiver")
+  giftSuggestions       GiftSuggestion[] @relation("GiftSuggestions")
 }
 
 model Group {
-  id      Int           @id @default(autoincrement())
-  name    String
-  ownerId Int
-  owner   User          @relation("GroupOwner", fields: [ownerId], references: [id], onDelete: Restrict)
-  invite  GroupInvite?
-  members GroupMember[]
-  exclusions GroupExclusion[]
-  assignments Assignment[]
+  id             Int              @id @default(autoincrement())
+  name           String
+  ownerId        Int
+  owner          User             @relation("GroupOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  members        GroupMember[]
+  invite         GroupInvite?
+  exclusions     GroupExclusion[]
+  assignments    Assignment[]
+  suggestions    GiftSuggestion[]
+  eventDate      DateTime?
+  minGiftCents   Int?
+  maxGiftCents   Int?
+  eventAddress   String?
+  eventLat       Float?
+  eventLng       Float?
 
   @@unique([ownerId, name])
 }
@@ -78,4 +86,15 @@ model Assignment {
 
   @@unique([groupId, giverId])
   @@unique([groupId, receiverId])
+}
+
+model GiftSuggestion {
+  id        Int      @id @default(autoincrement())
+  groupId   Int
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  userId    Int
+  user      User     @relation("GiftSuggestions", fields: [userId], references: [id], onDelete: Cascade)
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

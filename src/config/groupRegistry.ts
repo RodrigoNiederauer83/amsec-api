@@ -14,6 +14,12 @@ import {
   drawResponseSchema,
   drawQuerySchema,
   myAssignmentResponseSchema,
+  updateGroupSettingsSchema,
+  groupSettingsResponseSchema,
+  createSuggestionSchema,
+  suggestionResponseSchema,
+  updateSuggestionSchema,
+  listSuggestionsQuerySchema,
 } from "../schemas/groupSchemas";
 import { errorResponseSchema } from "../schemas/authSchemas";
 
@@ -183,3 +189,92 @@ registry.registerPath({
     404: { description: "Sorteio ainda não foi realizado para este grupo (ou você não é membro)", content: { "application/json": { schema: errorResponseSchema } } },
   },
 });
+
+registry.registerPath({
+  method: "patch",
+  path: "/groups/{id}/settings",
+  summary: "Alterar informações sobre o grupo.",
+  tags: ["Groups"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string().openapi({ example: "1" }) }),
+    body: { content: { "application/json": { schema: updateGroupSettingsSchema } } },
+  },
+  responses: {
+    200: { description: "Alterações realizadas com sucesso.", content: { "application/json": { schema: groupSettingsResponseSchema } } },
+    403: { description: "Apenas o responsável pode alterar as configurações.", content: { "application/json": { schema: errorResponseSchema } } },
+    404: { description: "Grupo não encontrado.", content: { "application/json": { schema: errorResponseSchema } } },
+    422: { description: "Erro de comparação entre valores mínimo/máximo, ou latitude/longitude não fornecidos juntos.", content: { "application/json": { schema: errorResponseSchema } } },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/groups/{id}/suggestions",
+  summary: "Adicionar sugestões de presentes.",
+  tags: ["Groups"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string().openapi({ example: "1" }) }),
+    body: { content: { "application/json": { schema: createSuggestionSchema} } }
+  },
+  responses: {
+    201: { description: "Sugestão criada com sucesso", content: { "application/json": { schema: suggestionResponseSchema } } },
+    403: { description: "Você não faz parte deste grupo.", content: { "application/json": { schema: errorResponseSchema } } },
+  }
+});
+
+registry.registerPath({
+  method: "get",
+  path: "/groups/{id}/suggestions",
+  summary: "Lista de sugestões de presentes dos membros do grupo.",
+  tags: ["Groups"],
+  security: [{ bearerAuth: [] }],
+  request: {
+  params: z.object({ id: z.string().openapi({ example: "1" }) }),
+  query: listSuggestionsQuerySchema,
+},
+  responses: {
+    200: { description: "Lista de sugestões de presentes dos membros do grupo.", content: { "application/json": { schema: z.array(suggestionResponseSchema) } } },
+    403: { description: "Você não faz parte deste grupo.", content: { "application/json": { schema: errorResponseSchema } } },
+  }
+})
+
+registry.registerPath({
+  method: "patch",
+  path: "/groups/{id}/suggestions/{suggestionId}",
+  summary: "Altera sugestão de presente da pessoa logada.",
+  tags: ["Groups"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({
+      id: z.string().openapi({ example: "1" }),
+      suggestionId: z.string().openapi({ example: "1" }),
+    }),
+    body: { content: { "application/json": { schema: updateSuggestionSchema } } }
+  },
+  responses: {
+    200: { description: "Alterações realizadas com sucesso.", content: { "application/json": { schema: suggestionResponseSchema } }},
+    403: { description: "Você só pode editar suas próprias sugestões.", content: { "application/json": { schema: errorResponseSchema } } },
+    404: { description: "Sugestão não encontrada.", content: { "application/json": { schema: errorResponseSchema } } },
+  }
+})
+
+registry.registerPath({
+  method: "delete",
+  path: "/groups/{id}/suggestions/{suggestionId}",
+  summary: "Exlui sugestão de presente da pessoa logada.",
+  tags: ["Groups"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({
+      id: z.string().openapi({ example: "1" }),
+      suggestionId: z.string().openapi({ example: "1" }),
+    }),
+  },
+  responses: {
+    204: { description: "Sugestão apagada com sucesso." },
+    403: { description: "Você só pode excluir suas próprias sugestões.", content: { "application/json": { schema: errorResponseSchema } } },
+    404: { description: "Sugestão não encontrada.", content: { "application/json": { schema: errorResponseSchema } } },
+  }
+})

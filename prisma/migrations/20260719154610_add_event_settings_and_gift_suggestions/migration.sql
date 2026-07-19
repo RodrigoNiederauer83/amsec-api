@@ -1,0 +1,16 @@
+-- AlterTable
+ALTER TABLE "Group" ADD COLUMN "eventDate" DATETIME;
+ALTER TABLE "Group" ADD COLUMN "maxGiftCents" INTEGER;
+ALTER TABLE "Group" ADD COLUMN "minGiftCents" INTEGER;
+
+-- CreateTable
+CREATE TABLE "GiftSuggestion" (
+    "id" INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+    "groupId" INTEGER NOT NULL,
+    "userId" INTEGER NOT NULL,
+    "content" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "GiftSuggestion_groupId_fkey" FOREIGN KEY ("groupId") REFERENCES "Group" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "GiftSuggestion_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);

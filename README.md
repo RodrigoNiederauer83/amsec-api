@@ -63,6 +63,7 @@ Todas as rotas abaixo exigem autenticação (JWT).
 - `POST /groups/invite/:token/join` — aceita o convite e efetivamente entra no grupo.
 - `GET /groups?owner=&name=` — busca **entre os grupos que o usuário já participa**, filtrando por nome do responsável e/ou nome do grupo (busca parcial). Retorna sempre uma lista, mesmo com um único resultado.
 - `GET /groups/:id` — detalhes de um grupo específico (responsável e lista de membros). Só acessível a quem já é membro do grupo.
+- `PATCH /groups/:id/settings` — atualiza as configurações do grupo (data/hora do evento, valores mínimo/máximo de presente, endereço e coordenadas do evento). Apenas o responsável. Todos os campos são opcionais e podem ser enviados parcialmente; o servidor sempre valida a combinação final dos valores (ex: mínimo não pode ficar maior que o máximo, latitude e longitude precisam ser fornecidas juntas).
 
 ### Exclusões (restrições do sorteio)
 
@@ -74,21 +75,29 @@ Todas as rotas abaixo exigem autenticação (JWT).
 
 ### Sorteio
 
-- `POST /groups/:id/draw` — realiza o sorteio do grupo, respeitando as exclusões cadastradas. Apenas o responsável pode disparar. Requer no mínimo 3 membros. Pode ser refeito quantas vezes for necessário, **desde que nenhum participante ainda tenha visualizado o resultado** — a partir do primeiro acesso via `GET /groups/:id/assignment`, o sorteio fica travado.
+- `POST /groups/:id/draw` — realiza o sorteio do grupo, respeitando as exclusões cadastradas. Apenas o responsável pode disparar. Requer no mínimo 3 membros. Pode ser refeito quantas vezes for necessário, **desde que nenhum participante ainda tenha visualizado o resultado** — a partir do primeiro acesso via `GET /groups/:id/assignment`, o sorteio fica travado. O responsável pode forçar um resorteio mesmo após alguém já ter visualizado, usando `?force=true`.
 - `GET /groups/:id/assignment` — cada membro consulta **apenas o próprio resultado** (quem ele tirou). Não existe rota que exponha todos os pares de uma vez — nem para o responsável — preservando o sigilo do sorteio.
 
 O algoritmo de sorteio usa backtracking: monta o pareamento membro a membro, voltando atrás sempre que uma escolha impede o restante do grupo de fechar corretamente. Isso garante encontrar uma solução válida sempre que ela existir (considerando as exclusões), e retorna erro (`422`) apenas quando é matematicamente impossível de satisfazer todas as regras.
+
+### Sugestões de presente
+
+- `POST /groups/:id/suggestions` — cadastra uma sugestão de presente. Qualquer membro pode cadastrar as próprias sugestões (até 150 caracteres cada, podendo ter várias).
+- `GET /groups/:id/suggestions?userId=` — lista as sugestões do grupo, ordenadas pelo nome de quem cadastrou. Aberto a qualquer membro. Com o parâmetro `userId`, filtra apenas as sugestões daquele membro específico; sem ele, retorna as de todos.
+- `PATCH /groups/:id/suggestions/:suggestionId` — edita uma sugestão. Somente quem criou a sugestão pode editá-la (nem o responsável do grupo pode editar sugestões de terceiros).
+- `DELETE /groups/:id/suggestions/:suggestionId` — remove uma sugestão. Somente quem criou.
 
 > Por privacidade, um usuário só consegue ver ou buscar grupos dos quais já faça parte. A única forma de descobrir e entrar em um grupo novo é através do link de convite (`token`), compartilhado pelo responsável fora da aplicação (WhatsApp, Telegram, e-mail, etc.).
 
 ## Modelo de dados
 
 - **User** — usuário cadastrado na aplicação.
-- **Group** — grupo de amigo secreto, com um responsável (`owner`).
+- **Group** — grupo de amigo secreto, com um responsável (`owner`) e configurações opcionais (data/hora do evento, valores mínimo/máximo de presente em centavos, endereço e coordenadas do evento).
 - **GroupMember** — relação de participação entre `User` e `Group` (o responsável também é um membro).
 - **GroupInvite** — convite ativo de um grupo, identificado por um token único e com data de expiração.
 - **GroupExclusion** — par de membros que não podem ser sorteados entre si.
 - **Assignment** — resultado do sorteio: quem (`giver`) tirou quem (`receiver`), com controle de visualização (`viewedAt`).
+- **GiftSuggestion** — sugestão de presente cadastrada por um membro, vinculada ao grupo e ao autor.
 
 ## Estrutura do projeto
 
@@ -109,3 +118,4 @@ src/
 
 - [ ] Gerenciamento de grupo: transferência de responsável, remoção de membro
 - [ ] Criptografia do resultado do sorteio a nível de banco (avaliar trade-offs com as garantias relacionais atuais)
+- [ ] Links de lojas parceiras nas sugestões de presente
