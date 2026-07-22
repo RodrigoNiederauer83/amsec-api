@@ -1,6 +1,7 @@
 import { Request, RequestHandler, Response } from "express";
 import { prisma } from "../prisma/client";
 import { generateDraw } from "../utils/drawAlgorithm";
+import { emailService } from "../services";
 
 import crypto from "crypto";
 
