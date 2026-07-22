@@ -5,6 +5,9 @@ import {
   userResponseSchema,
   loginResponseSchema,
   errorResponseSchema,
+  forgotPasswordSchema,
+  resetPasswordSchema,
+  genericMessageResponseSchema,
 } from "../schemas/authSchemas";
 
 registry.registerPath({
@@ -45,5 +48,45 @@ registry.registerPath({
   responses: {
     200: { description: "Dados do usuário", content: { "application/json": { schema: userResponseSchema } } },
     401: { description: "Token ausente ou inválido", content: { "application/json": { schema: errorResponseSchema } } },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/auth/forgot-password",
+  summary: "Solicitar recuperação de senha",
+  tags: ["Auth"],
+  request: {
+    body: { content: { "application/json": { schema: forgotPasswordSchema } } },
+  },
+  responses: {
+    200: {
+      description: "Se o e-mail estiver cadastrado, as instruções são enviadas (resposta sempre igual, por segurança)",
+      content: { "application/json": { schema: genericMessageResponseSchema } },
+    },
+    400: {
+      description: "Dados inválidos",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/auth/reset-password",
+  summary: "Redefinir senha usando o token recebido por e-mail",
+  tags: ["Auth"],
+  request: {
+    body: { content: { "application/json": { schema: resetPasswordSchema } } },
+  },
+  responses: {
+    200: {
+      description: "Senha redefinida com sucesso",
+      content: { "application/json": { schema: genericMessageResponseSchema } },
+    },
+    400: {
+      description: "Token inválido ou expirado, ou dados inválidos",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
   },
 });

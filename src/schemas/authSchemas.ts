@@ -25,3 +25,16 @@ export const loginResponseSchema = z.object({
 export const errorResponseSchema = z.object({
   error: z.string().openapi({ example: "Mensagem de erro" }),
 });
+
+export const forgotPasswordSchema = z.object({
+  email: z.email("Email inválido").openapi({ example: "usuario@email.com" }),
+});
+
+export const resetPasswordSchema = z.object({
+  token: z.string().min(1, "Token é obrigatório.").openapi({ example: "a1b2c3..." }),
+  newPassword: z.string().min(6, "A senha precisa ter no mínimo 6 caracteres.").openapi({ example: "NovaSenha123" }),
+});
+
+export const genericMessageResponseSchema = z.object({
+  message: z.string().openapi({ example: "Se este e-mail estiver cadastrado, você receberá as instruções." }),
+});
