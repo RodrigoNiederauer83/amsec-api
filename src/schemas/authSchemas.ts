@@ -4,6 +4,10 @@ export const registerSchema = z.object({
     email: z.email("Email inválido").openapi({ example: "usuario@email.com" }),
     password: z.string().min(6, "A senha precisa ter no mínimo 6 caracteres.").openapi({ example: "Abc123" }),
     name: z.string().min(1, "Nome é obrigatório.").openapi({ example: "João da Silva" }),
+    phoneNumber: z
+    .string()
+    .regex(/^\+[1-9]\d{7,14}$/, "Telefone deve estar no formato internacional, ex: +5511999998888")
+    .openapi({ example: "+5511999998888" }),
 })
 
 export const loginSchema = z.object({
@@ -14,7 +18,8 @@ export const loginSchema = z.object({
 export const userResponseSchema = z.object({
   id: z.number().openapi({ example: 1 }),
   email: z.email().openapi({ example: "usuario@email.com" }),
-  name: z.string().openapi({ example: "João da Silva" }),
+  name: z.string().nullable().openapi({ example: "João da Silva" }),
+  phoneNumber: z.string().openapi({ example: "+5511999998888" }),
 });
 
 export const loginResponseSchema = z.object({

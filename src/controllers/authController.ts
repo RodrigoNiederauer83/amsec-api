@@ -3,33 +3,34 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { prisma } from "../prisma/client";
 import { env } from "../config/env";
+import crypto from "crypto";
+import { emailService } from "../services";
 
+const RESET_TOKEN_EXPIRATION_MINUTES = 15;
 
 export async function register(req: Request, res: Response) {
-  const { email, password, name } = req.body;
+  const { email, password, name, phoneNumber } = req.body;
 
-  const existingUser = await prisma.user.findUnique({
-    where: { email },
+  const existingUser = await prisma.user.findFirst({
+    where: { OR: [{ email }, { phoneNumber }] },
   });
 
   if (existingUser) {
-    return res.status(409).json({ error: "Email já cadastrado." });
+    const field = existingUser.email === email ? "Email" : "Telefone";
+    return res.status(409).json({ error: `${field} já cadastrado.` });
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
   const user = await prisma.user.create({
-    data: {
-      email,
-      password: hashedPassword,
-      name,
-    },
-  })
+    data: { email, password: hashedPassword, name, phoneNumber },
+  });
 
   return res.status(201).json({
     id: user.id,
     email: user.email,
     name: user.name,
+    phoneNumber: user.phoneNumber,
   });
 }
 
