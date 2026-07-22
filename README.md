@@ -132,3 +132,8 @@ src/
 - [ ] Links de lojas parceiras nas sugestões de presente
 - [ ] Notificações via WhatsApp/Telegram/SMS usando o telefone cadastrado
 - [ ] Monorepo com app mobile (React Native) e/ou web (React), reaproveitando os schemas Zod já existentes
+- [ ] Alterar nome do usuário
+- [ ] Alterar e-mail — exige fluxo de confirmação em duas etapas (link de confirmação enviado ao **novo** e-mail antes de efetivar a troca), para evitar sequestro de conta via sessão comprometida. Avaliar exigir a senha atual como camada extra.
+- [ ] Alterar telefone — exige confirmação (ex: código via SMS/WhatsApp) antes de efetivar, especialmente relevante quando a feature de notificações existir (evita notificar o número errado em caso de reciclagem de número).
+- [ ] Excluir grupo — o responsável pode excluir a qualquer momento, sem restrição de estado (mesmo com sorteio já realizado). A confirmação ("tem certeza?") fica a cargo do frontend; a API executa direto quando chamada. Já é tecnicamente segura hoje, pois todos os models filhos de Group (GroupMember, GroupInvite, GroupExclusion, Assignment, GiftSuggestion) usam onDelete: Cascade — apagar o grupo já limpa tudo relacionado automaticamente.
+- [ ] Excluir cadastro — já parcialmente coberto pela regra `onDelete: Restrict` em `Group.owner` (impede excluir conta enquanto for responsável por algum grupo). Falta decidir a regra de negócio para `Assignment`: hoje o `onDelete: Cascade` apaga silenciosamente os pares de sorteio de um membro comum que se exclui após o sorteio já ter ocorrido, o que pode quebrar a dinâmica do grupo sem aviso. Avaliar bloquear a exclusão de conta enquanto houver sorteio ativo no grupo, ou notificar o responsável quando isso acontecer.
