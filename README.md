@@ -9,6 +9,7 @@ API REST com autenticação (cadastro e login) e gerenciamento de grupos de amig
 - Prisma 7 (SQLite em desenvolvimento)
 - Zod (validação)
 - JWT + bcrypt (autenticação)
+- Resend (envio de e-mail transacional)
 - Swagger / OpenAPI (documentação)
 
 ## Como rodar
@@ -22,7 +23,11 @@ API REST com autenticação (cadastro e login) e gerenciamento de grupos de amig
    ```bash
    cp .env.example .env
    ```
-   Preencha o `JWT_SECRET` com uma string aleatória de pelo menos 10 caracteres.
+   Preencha:
+   - `JWT_SECRET` — string aleatória com no mínimo 10 caracteres.
+   - `RESEND_API_KEY` — chave de API criada em [resend.com](https://resend.com).
+   - `EMAIL_FROM` — endereço remetente dos e-mails (em modo teste do Resend, pode usar `onboarding@resend.dev`).
+   - `FRONTEND_URL` — URL base do frontend, usada para montar o link de redefinição de senha (ex: `http://localhost:3000`).
 
 3. Rode as migrations do banco:
    ```bash
@@ -49,9 +54,13 @@ A documentação interativa (Swagger UI) lista todas as rotas disponíveis, seus
 
 ### Autenticação
 
-- `POST /auth/register` — cadastro de usuário
+- `POST /auth/register` — cadastro de usuário. Requer e-mail, senha, telefone (formato internacional E.164, ex: `+5511999998888`, obrigatório e único) e nome (opcional).
 - `POST /auth/login` — login (retorna JWT)
 - `GET /auth/me` — dados do usuário logado (rota protegida)
+- `POST /auth/forgot-password` — solicita recuperação de senha. Sempre responde com a mesma mensagem genérica, independente do e-mail existir ou não (evita expor quais e-mails têm conta cadastrada). Se existir, envia um e-mail com um link contendo um token válido por 15 minutos.
+- `POST /auth/reset-password` — redefine a senha usando o token recebido por e-mail. O token só pode ser usado uma vez.
+
+> O envio de e-mail é feito através de uma interface (`EmailService`), desacoplada do provedor concreto (`ResendEmailService`). Trocar de provedor de e-mail no futuro não exige alterar os controllers, apenas criar uma nova implementação da interface.
 
 ### Grupos de amigo secreto
 
@@ -91,13 +100,14 @@ O algoritmo de sorteio usa backtracking: monta o pareamento membro a membro, vol
 
 ## Modelo de dados
 
-- **User** — usuário cadastrado na aplicação.
+- **User** — usuário cadastrado na aplicação (e-mail, senha, nome opcional, telefone único no formato internacional).
 - **Group** — grupo de amigo secreto, com um responsável (`owner`) e configurações opcionais (data/hora do evento, valores mínimo/máximo de presente em centavos, endereço e coordenadas do evento).
 - **GroupMember** — relação de participação entre `User` e `Group` (o responsável também é um membro).
 - **GroupInvite** — convite ativo de um grupo, identificado por um token único e com data de expiração.
 - **GroupExclusion** — par de membros que não podem ser sorteados entre si.
 - **Assignment** — resultado do sorteio: quem (`giver`) tirou quem (`receiver`), com controle de visualização (`viewedAt`).
 - **GiftSuggestion** — sugestão de presente cadastrada por um membro, vinculada ao grupo e ao autor.
+- **PasswordReset** — token ativo de recuperação de senha de um usuário, com expiração de 15 minutos e uso único.
 
 ## Estrutura do projeto
 
@@ -109,6 +119,7 @@ src/
 ├── prisma/         # cliente do Prisma
 ├── routes/         # definição dos endpoints
 ├── schemas/        # schemas Zod (validação + documentação)
+├── services/        # integrações externas por trás de interfaces (ex: envio de e-mail)
 ├── types/          # extensões de tipos (ex: req.userId)
 ├── utils/          # lógica de domínio pura (ex: algoritmo de sorteio)
 └── server.ts       # ponto de entrada
@@ -119,3 +130,5 @@ src/
 - [ ] Gerenciamento de grupo: transferência de responsável, remoção de membro
 - [ ] Criptografia do resultado do sorteio a nível de banco (avaliar trade-offs com as garantias relacionais atuais)
 - [ ] Links de lojas parceiras nas sugestões de presente
+- [ ] Notificações via WhatsApp/Telegram/SMS usando o telefone cadastrado
+- [ ] Monorepo com app mobile (React Native) e/ou web (React), reaproveitando os schemas Zod já existentes
