@@ -168,7 +168,17 @@ export const searchGroups: RequestHandler = async (req, res) => {
   });
 
   return res.status(200).json(
-    groups.map((g) => ({ id: g.id, name: g.name, owner: g.owner }))
+    groups.map((g) => ({ 
+      id: g.id, 
+      name: g.name, 
+      owner: g.owner,
+      eventDate: g.eventDate,
+      minGiftCents: g.minGiftCents,
+      maxGiftCents: g.maxGiftCents,
+      eventAddress: g.eventAddress,
+      eventLat: g.eventLat,
+      eventLng: g.eventLng
+    }))
   );
 }
 
@@ -361,7 +371,7 @@ export const deleteExclusion: RequestHandler = async (req, res) => {
 export const drawGroup: RequestHandler = async (req, res) => {
   const groupId = Number(req.params.id);
   const requesterId = req.userId!;
-  const force = req.query.force = "true";
+  const force = req.query.force === "true";
 
   const group = await prisma.group.findUnique({ where: { id: groupId } });
 
