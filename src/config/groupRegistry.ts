@@ -171,7 +171,7 @@ registry.registerPath({
     403: { description: "Apenas o responsável pode realizar o sorteio", content: { "application/json": { schema: errorResponseSchema } } },
     404: { description: "Grupo não encontrado", content: { "application/json": { schema: errorResponseSchema } } },
     409: { description: "O sorteio já foi visualizado por algum participante — use ?force=true para refazer mesmo assim", content: { "application/json": { schema: errorResponseSchema } } },
-    422: { description: "Membros insuficientes, ou não foi possível gerar um sorteio válido com as exclusões atuais", content: { "application/json": { schema: errorResponseSchema } } },
+    422: { description: "Membros insuficientes, ou não foi possível gerar um sorteio válido com as exclusões atuais ou sem data de evento", content: { "application/json": { schema: errorResponseSchema } } },
   },
 });
 

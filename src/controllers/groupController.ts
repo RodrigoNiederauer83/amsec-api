@@ -373,6 +373,12 @@ export const drawGroup: RequestHandler = async (req, res) => {
     return res.status(403).json({ error: "Apenas o responsável pode realizar o sorteio." });
   }
 
+  if (!group.eventDate) {
+    return res.status(422).json({
+      error: "É necessário cadastrar a data do evento antes de realizar o sorteio. Use PATCH /groups/:id/settings.",
+    });
+  }
+
   const existingAssignments = await prisma.assignment.findMany({ where: { groupId } });
   const alreadyViewed = existingAssignments.some((a) => a.viewedAt !== null);
 
