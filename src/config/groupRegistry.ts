@@ -278,3 +278,19 @@ registry.registerPath({
     404: { description: "Sugestão não encontrada.", content: { "application/json": { schema: errorResponseSchema } } },
   }
 })
+
+registry.registerPath({
+  method: "delete",
+  path: "/groups/{id}",
+  summary: "Apaga o grupo.",
+  tags: ["Groups"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string().openapi({ example: "1" }) }),
+  },
+  responses: {
+    204: { description: "Grupo apagado com sucesso." },
+    403: { description: "Apenas o responsável pode excluir o grupo.", content: { "application/json": { schema: errorResponseSchema } } },
+    404: { description: "Grupo não encontrado.", content: { "application/json": { schema: errorResponseSchema } } },
+  },
+});

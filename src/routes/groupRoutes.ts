@@ -15,7 +15,8 @@ import {
     listSuggestions,
     updateSuggestion,
     deleteSuggestion,
-    updateGroupSettings
+    updateGroupSettings,
+    deleteGroup
 } from "../controllers/groupController";
 import { authMiddleware } from "../middlewares/authMiddleware";
 import { validate } from "../middlewares/validationMiddleware";
@@ -100,5 +101,6 @@ router.patch(
   validate(updateGroupSettingsSchema, "body"),
   updateGroupSettings
 );
+router.delete("/:id", authMiddleware, validate(groupIdParamSchema, "params"), deleteGroup);
 
 export default router;

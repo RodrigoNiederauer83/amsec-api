@@ -1,7 +1,6 @@
 import { Request, RequestHandler, Response } from "express";
 import { prisma } from "../prisma/client";
 import { generateDraw } from "../utils/drawAlgorithm";
-import { emailService } from "../services";
 
 import crypto from "crypto";
 
@@ -534,6 +533,27 @@ export const deleteSuggestion: RequestHandler = async (req, res) => {
   }
 
   await prisma.giftSuggestion.delete({ where: { id: suggestionId } });
+
+  return res.status(204).send();
+}
+
+export const deleteGroup: RequestHandler = async (req, res) => {
+  const groupId = Number(req.params.id);
+  const requesterId = req.userId!;
+
+  const group = await prisma.group.findUnique({ where: { id: groupId } });
+
+  if (!group) {
+    return res.status(404).json({ error: "Grupo não encontrado." });
+  }
+
+  if (group.ownerId !== requesterId) {
+    return res.status(403).json({ error: "Apenas o responsável pode excluir o grupo."});
+  }
+
+  await prisma.group.delete({
+    where: { id: groupId },
+  });
 
   return res.status(204).send();
 }
