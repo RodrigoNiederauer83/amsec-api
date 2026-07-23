@@ -43,3 +43,7 @@ export const resetPasswordSchema = z.object({
 export const genericMessageResponseSchema = z.object({
   message: z.string().openapi({ example: "Se este e-mail estiver cadastrado, você receberá as instruções." }),
 });
+
+export const deleteAccountSchema = z.object({
+  password: z.string().min(1, "Senha é obrigatória.").openapi({ example: "SuaSenhaAtual123" }),
+});

@@ -1,4 +1,4 @@
-import { Request, Response } from "express";
+import { Request, RequestHandler, Response } from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { prisma } from "../prisma/client";
@@ -143,3 +143,47 @@ export async function resetPassword(req: Request, res: Response) {
 
   return res.status(200).json({ message: "Senha redefinida com sucesso." });
 }
+
+export const deleteAccount: RequestHandler = async (req, res) => {
+  const userId = req.userId!;
+  const { password } = req.body;
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+
+  if (!user) {
+    return res.status(404).json({ error: "Usuário não encontrado." });
+  }
+
+  const passwordMatches = await bcrypt.compare(password, user.password);
+
+  if (!passwordMatches) {
+    return res.status(401).json({ error: "Senha incorreta." });
+  }
+
+  const ownedGroup = await prisma.group.findFirst({ where: { ownerId: userId } });
+
+  if (ownedGroup) {
+    return res.status(409).json({
+      error: "Você precisa excluir ou transferir a responsabilidade dos grupos que administra antes de excluir sua conta.",
+    });
+  }
+
+  const activeAssignment = await prisma.assignment.findFirst({
+    where: {
+      OR: [{ giverId: userId }, { receiverId: userId }],
+      group: {
+        OR: [{ eventDate: null }, { eventDate: { gte: new Date() } }],
+      },
+    },
+  });
+
+  if (activeAssignment) {
+    return res.status(409).json({
+      error: "Você não pode excluir sua conta enquanto participar de um sorteio ativo.",
+    });
+  }
+
+  await prisma.user.delete({ where: { id: userId } });
+
+  return res.status(204).send();
+};

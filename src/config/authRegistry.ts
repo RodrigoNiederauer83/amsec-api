@@ -8,6 +8,7 @@ import {
   forgotPasswordSchema,
   resetPasswordSchema,
   genericMessageResponseSchema,
+  deleteAccountSchema,
 } from "../schemas/authSchemas";
 
 registry.registerPath({
@@ -86,6 +87,28 @@ registry.registerPath({
     },
     400: {
       description: "Token inválido ou expirado, ou dados inválidos",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "delete",
+  path: "/auth/me",
+  summary: "Exclui a conta do usuário logado.",
+  tags: ["Auth"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: { content: { "application/json": { schema: deleteAccountSchema } } },
+  },
+  responses: {
+    204: { description: "Conta excluída com sucesso." },
+    401: {
+      description: "Senha incorreta.",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+    409: {
+      description: "Não é possível excluir: o usuário é responsável por algum grupo, ou participa de um sorteio ativo.",
       content: { "application/json": { schema: errorResponseSchema } },
     },
   },

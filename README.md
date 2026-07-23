@@ -59,6 +59,7 @@ A documentação interativa (Swagger UI) lista todas as rotas disponíveis, seus
 - `GET /auth/me` — dados do usuário logado (rota protegida)
 - `POST /auth/forgot-password` — solicita recuperação de senha. Sempre responde com a mesma mensagem genérica, independente do e-mail existir ou não (evita expor quais e-mails têm conta cadastrada). Se existir, envia um e-mail com um link contendo um token válido por 15 minutos.
 - `POST /auth/reset-password` — redefine a senha usando o token recebido por e-mail. O token só pode ser usado uma vez.
+- `DELETE /auth/me` — exclui a conta do usuário logado. Exige confirmação da senha atual no corpo da requisição. Bloqueada enquanto o usuário for responsável por algum grupo, ou participar de um sorteio cujo evento ainda não ocorreu.
 
 > O envio de e-mail é feito através de uma interface (`EmailService`), desacoplada do provedor concreto (`ResendEmailService`). Trocar de provedor de e-mail no futuro não exige alterar os controllers, apenas criar uma nova implementação da interface.
 
@@ -120,7 +121,7 @@ src/
 ├── prisma/         # cliente do Prisma
 ├── routes/         # definição dos endpoints
 ├── schemas/        # schemas Zod (validação + documentação)
-├── services/        # integrações externas por trás de interfaces (ex: envio de e-mail)
+├── services/       # integrações externas por trás de interfaces (ex: envio de e-mail)
 ├── types/          # extensões de tipos (ex: req.userId)
 ├── utils/          # lógica de domínio pura (ex: algoritmo de sorteio)
 └── server.ts       # ponto de entrada
@@ -136,4 +137,3 @@ src/
 - [ ] Alterar nome do usuário
 - [ ] Alterar e-mail — exige fluxo de confirmação em duas etapas (link de confirmação enviado ao **novo** e-mail antes de efetivar a troca), para evitar sequestro de conta via sessão comprometida. Avaliar exigir a senha atual como camada extra.
 - [ ] Alterar telefone — exige confirmação (ex: código via SMS/WhatsApp) antes de efetivar, especialmente relevante quando a feature de notificações existir (evita notificar o número errado em caso de reciclagem de número).
-- [ ] Excluir cadastro — já parcialmente coberto pela regra `onDelete: Restrict` em `Group.owner` (impede excluir conta enquanto for responsável por algum grupo). Falta decidir a regra de negócio para `Assignment`: hoje o `onDelete: Cascade` apaga silenciosamente os pares de sorteio de um membro comum que se exclui após o sorteio já ter ocorrido, o que pode quebrar a dinâmica do grupo sem aviso. Avaliar bloquear a exclusão de conta enquanto houver sorteio ativo no grupo, ou notificar o responsável quando isso acontecer.
