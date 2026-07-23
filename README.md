@@ -73,6 +73,7 @@ Todas as rotas abaixo exigem autenticação (JWT).
 - `GET /groups?owner=&name=` — busca **entre os grupos que o usuário já participa**, filtrando por nome do responsável e/ou nome do grupo (busca parcial). Retorna sempre uma lista, mesmo com um único resultado.
 - `GET /groups/:id` — detalhes de um grupo específico (responsável e lista de membros). Só acessível a quem já é membro do grupo.
 - `PATCH /groups/:id/settings` — atualiza as configurações do grupo (data/hora do evento, valores mínimo/máximo de presente, endereço e coordenadas do evento). Apenas o responsável. Todos os campos são opcionais e podem ser enviados parcialmente; o servidor sempre valida a combinação final dos valores (ex: mínimo não pode ficar maior que o máximo, latitude e longitude precisam ser fornecidas juntas).
+- `DELETE /groups/:id` — O responsável pelo grupo (owner) pode excluir o grupo a qualquer momento.
 
 ### Exclusões (restrições do sorteio)
 
@@ -135,5 +136,4 @@ src/
 - [ ] Alterar nome do usuário
 - [ ] Alterar e-mail — exige fluxo de confirmação em duas etapas (link de confirmação enviado ao **novo** e-mail antes de efetivar a troca), para evitar sequestro de conta via sessão comprometida. Avaliar exigir a senha atual como camada extra.
 - [ ] Alterar telefone — exige confirmação (ex: código via SMS/WhatsApp) antes de efetivar, especialmente relevante quando a feature de notificações existir (evita notificar o número errado em caso de reciclagem de número).
-- [ ] Excluir grupo — o responsável pode excluir a qualquer momento, sem restrição de estado (mesmo com sorteio já realizado). A confirmação ("tem certeza?") fica a cargo do frontend; a API executa direto quando chamada. Já é tecnicamente segura hoje, pois todos os models filhos de Group (GroupMember, GroupInvite, GroupExclusion, Assignment, GiftSuggestion) usam onDelete: Cascade — apagar o grupo já limpa tudo relacionado automaticamente.
 - [ ] Excluir cadastro — já parcialmente coberto pela regra `onDelete: Restrict` em `Group.owner` (impede excluir conta enquanto for responsável por algum grupo). Falta decidir a regra de negócio para `Assignment`: hoje o `onDelete: Cascade` apaga silenciosamente os pares de sorteio de um membro comum que se exclui após o sorteio já ter ocorrido, o que pode quebrar a dinâmica do grupo sem aviso. Avaliar bloquear a exclusão de conta enquanto houver sorteio ativo no grupo, ou notificar o responsável quando isso acontecer.
