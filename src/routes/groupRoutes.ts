@@ -16,7 +16,10 @@ import {
     updateSuggestion,
     deleteSuggestion,
     updateGroupSettings,
-    deleteGroup
+    deleteGroup,
+    transferOwnership,
+    leaveGroup,
+    removeMember
 } from "../controllers/groupController";
 import { authMiddleware } from "../middlewares/authMiddleware";
 import { validate } from "../middlewares/validationMiddleware";
@@ -26,8 +29,10 @@ import {
     createSuggestionSchema,
     drawQuerySchema,
     groupIdParamSchema,
+    groupMemberParamsSchema,
     listSuggestionsQuerySchema,
     searchGroupsQuerySchema,
+    transferOwnershipSchema,
     updateGroupSettingsSchema,
     updateSuggestionSchema
 } from "../schemas/groupSchemas";
@@ -102,5 +107,14 @@ router.patch(
   updateGroupSettings
 );
 router.delete("/:id", authMiddleware, validate(groupIdParamSchema, "params"), deleteGroup);
+router.patch(
+  "/:id/transfer-ownership",
+  authMiddleware,
+  validate(groupIdParamSchema, "params"),
+  validate(transferOwnershipSchema, "body"),
+  transferOwnership
+);
+router.delete("/:id/members/me", authMiddleware, validate(groupIdParamSchema, "params"), leaveGroup);
+router.delete("/:id/members/:userId", authMiddleware, validate(groupMemberParamsSchema, "params"), removeMember);
 
 export default router;

@@ -75,6 +75,9 @@ Todas as rotas abaixo exigem autenticação (JWT).
 - `GET /groups/:id` — detalhes de um grupo específico (responsável e lista de membros). Só acessível a quem já é membro do grupo.
 - `PATCH /groups/:id/settings` — atualiza as configurações do grupo (data/hora do evento, valores mínimo/máximo de presente, endereço e coordenadas do evento). Apenas o responsável. Todos os campos são opcionais e podem ser enviados parcialmente; o servidor sempre valida a combinação final dos valores (ex: mínimo não pode ficar maior que o máximo, latitude e longitude precisam ser fornecidas juntas).
 - `DELETE /groups/:id` — O responsável pelo grupo (owner) pode excluir o grupo a qualquer momento.
+- `PATCH /groups/:id/transfer-ownership` — transfere a responsabilidade do grupo para outro membro. Apenas o responsável atual pode chamar. Aceita um `newOwnerId` opcional no corpo (precisa ser membro do grupo); se omitido, a responsabilidade passa automaticamente para o membro mais antigo do grupo. Se não houver outro membro, retorna erro sugerindo excluir o grupo.
+- `DELETE /groups/:id/members/me` — o próprio membro sai do grupo voluntariamente. O responsável não pode sair por esta rota (precisa transferir a responsabilidade ou excluir o grupo antes). Bloqueada enquanto o membro participar de um sorteio cujo evento ainda não ocorreu.
+- `DELETE /groups/:id/members/:userId` — o responsável remove outro membro do grupo. Não pode remover a si mesmo por esta rota. Bloqueada enquanto o membro participar de um sorteio cujo evento ainda não ocorreu.
 
 ### Exclusões (restrições do sorteio)
 
@@ -129,7 +132,6 @@ src/
 
 ## Roadmap
 
-- [ ] Gerenciamento de grupo: transferência de responsável, remoção de membro
 - [ ] Criptografia do resultado do sorteio a nível de banco (avaliar trade-offs com as garantias relacionais atuais)
 - [ ] Links de lojas parceiras nas sugestões de presente
 - [ ] Notificações via WhatsApp/Telegram/SMS usando o telefone cadastrado

@@ -151,3 +151,21 @@ export const suggestionResponseSchema = z.object({
 export const listSuggestionsQuerySchema = z.object({
   userId: z.string().regex(/^\d+$/, "userId deve ser um número.").optional(),
 });
+
+export const transferOwnershipSchema = z.object({
+  newOwnerId: z.number().int().positive().optional().openapi({ example: 2 }),
+});
+
+export const groupTransferResponseSchema = z.object({
+  id: z.number().openapi({ example: 1 }),
+  name: z.string().openapi({ example: "Amigo Secreto da Firma" }),
+  owner: z.object({
+    id: z.number().openapi({ example: 2 }),
+    name: z.string().nullable().openapi({ example: "Maria Souza" }),
+  }),
+})
+
+export const groupMemberParamsSchema = z.object({
+  id: z.string().regex(/^\d+$/),
+  userId: z.string().regex(/^\d+$/),
+});

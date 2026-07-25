@@ -20,6 +20,8 @@ import {
   suggestionResponseSchema,
   updateSuggestionSchema,
   listSuggestionsQuerySchema,
+  transferOwnershipSchema,
+  groupTransferResponseSchema,
 } from "../schemas/groupSchemas";
 import { errorResponseSchema } from "../schemas/authSchemas";
 
@@ -292,5 +294,94 @@ registry.registerPath({
     204: { description: "Grupo apagado com sucesso." },
     403: { description: "Apenas o responsável pode excluir o grupo.", content: { "application/json": { schema: errorResponseSchema } } },
     404: { description: "Grupo não encontrado.", content: { "application/json": { schema: errorResponseSchema } } },
+  },
+});
+
+registry.registerPath({
+  method: "patch",
+  path: "/groups/{id}/transfer-ownership",
+  summary: "Transfere a responsabilidade do grupo para outro membro.",
+  tags: ["Groups"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string().openapi({ example: "1" }) }),
+    body: { content: { "application/json": { schema: transferOwnershipSchema } } },
+  },
+  responses: {
+    200: {
+      description: "Responsabilidade transferida com sucesso.",
+      content: { "application/json": { schema: groupTransferResponseSchema } },
+    },
+    403: {
+      description: "Apenas o responsável pode transferir o grupo.",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+    404: {
+      description: "Grupo não encontrado.",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+    422: {
+      description: "Usuário indicado não é membro do grupo, já é o responsável, ou não há outro membro disponível.",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "delete",
+  path: "/groups/{id}/members/me",
+  summary: "Sai do grupo voluntariamente.",
+  tags: ["Groups"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string().openapi({ example: "1" }) }),
+  },
+  responses: {
+    204: { description: "Você saiu do grupo com sucesso." },
+    403: {
+      description: "Você não faz parte deste grupo.",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+    404: {
+      description: "Grupo não encontrado.",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+    409: {
+      description: "Você é o responsável pelo grupo, ou participa de um sorteio ativo.",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "delete",
+  path: "/groups/{id}/members/{userId}",
+  summary: "Remove um membro do grupo.",
+  tags: ["Groups"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({
+      id: z.string().openapi({ example: "1" }),
+      userId: z.string().openapi({ example: "2" }),
+    }),
+  },
+  responses: {
+    204: { description: "Membro removido com sucesso." },
+    403: {
+      description: "Apenas o responsável pode remover membros.",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+    404: {
+      description: "Grupo não encontrado, ou o usuário informado não é membro do grupo.",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+    409: {
+      description: "Este membro participa de um sorteio ativo.",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+    422: {
+      description: "O responsável não pode remover a si mesmo por esta rota.",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
   },
 });

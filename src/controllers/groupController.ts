@@ -266,10 +266,6 @@ export const updateGroupSettings: RequestHandler = async (req, res) => {
   });
 };
 
-function normalizePair(a: number, b: number) {
-  return a < b ? { userAId: a, userBId: b } : { userAId: b, userBId: a };
-}
-
 export const createExclusion: RequestHandler = async (req, res) => {
   const groupId = Number(req.params.id);
   const requesterId = req.userId!;
@@ -455,13 +451,6 @@ export const getMyAssignment: RequestHandler = async (req, res) => {
   return res.status(200).json({ receiver: assignment.receiver });
 };
 
-async function assertIsMember(groupId: number, userId: number) {
-  const membership = await prisma.groupMember.findUnique({
-    where: { groupId_userId: { groupId, userId } },
-  });
-  return !!membership;
-}
-
 export const createSuggestion: RequestHandler = async (req, res) => {
   const groupId = Number(req.params.id);
   const userId = req.userId!;
@@ -573,3 +562,162 @@ export const deleteGroup: RequestHandler = async (req, res) => {
 
   return res.status(204).send();
 }
+
+export const transferOwnership: RequestHandler = async (req, res) => {
+  const groupId = Number(req.params.id);
+  const requesterId = req.userId!;
+  const { newOwnerId } = req.body;
+
+  const group = await prisma.group.findUnique({ where: { id: groupId } });
+
+  if (!group) {
+    return res.status(404).json({ error: "Grupo não encontrado." });
+  }
+
+  if (group.ownerId !== requesterId) {
+    return res.status(403).json({ error: "Apenas o responsável pode transferir o grupo." });
+  }
+
+  let targetId: number;
+
+  if (newOwnerId !== undefined) {
+    if (newOwnerId === group.ownerId) {
+      return res.status(422).json({ error: "Esta usuário já é o responsável pelo grupo." });
+    }
+
+    const isMember = await assertIsMember(groupId, newOwnerId);
+
+    if (!isMember) {
+      return res.status(422).json({ error: "O novo responsável precisa ser membro do groupo." });
+    }
+
+    targetId = newOwnerId;
+  } else {
+    const oldestMember = await prisma.groupMember.findFirst({
+      where: { groupId, userId: { not: group.ownerId } },
+      orderBy: { id: "asc" },
+    });
+
+    if (!oldestMember) {
+      return res.status(422).json({
+        error: "Não há outro membro no grupo para se tornar responsável. Para sair, exclua o grupo (DELETE /groups/:id).",
+      });
+    }
+
+    targetId = oldestMember.userId;
+  }
+
+  const updated = await prisma.group.update({
+    where: { id: groupId },
+    data: { ownerId: targetId },
+    include: { owner: { select: { id: true, name: true } } },
+  });
+
+  return res.status(200).json({
+    id: updated.id,
+    name: updated.name,
+    owner: updated.owner,
+  });
+}
+
+export const leaveGroup: RequestHandler = async (req, res) => {
+  const groupId = Number(req.params.id);
+  const userId = req.userId!;
+
+  const group = await prisma.group.findUnique({ where: { id: groupId } });
+
+  if (!group) {
+    return res.status(404).json({ error: "Grupo não encontrado." });
+  }
+
+  if (group.ownerId === userId) {
+    return res.status(409).json({
+      error: "Você é o responsável pelo grupo. Transfira a responsabilidade ou exclua o grupo antes de sair.",
+    });
+  }
+
+  const isMember = await assertIsMember(groupId, userId);
+
+  if (!isMember) {
+    return res.status(403).json({ error: "Você não faz parte deste grupo." });
+  }
+
+  const isActive = await hasActiveAssignment(groupId, userId, group.eventDate);
+
+  if (isActive) {
+    return res.status(409).json({ error: "Você não pode sair do grupo enquanto participar de um sorteio ativo." });
+  }
+
+  await prisma.groupMember.delete({
+    where: { groupId_userId: { groupId, userId } },
+  });
+
+  return res.status(204).send();
+};
+
+export const removeMember: RequestHandler = async (req, res) => {
+  const groupId = Number(req.params.id);
+  const targetUserId = Number(req.params.userId);
+  const requesterId = req.userId!;
+
+  const group = await prisma.group.findUnique({ where: { id: groupId } });
+
+  if (!group) {
+    return res.status(404).json({ error: "Grupo não encontrado." });
+  }
+
+  if (group.ownerId !== requesterId) {
+    return res.status(403).json({ error: "Apenas o responsável pode remover membros." });
+  }
+
+  if (targetUserId === group.ownerId) {
+    return res.status(422).json({
+      error: "O responsável não pode remover a si mesmo. Transfira a responsabilidade ou exclua o grupo.",
+    });
+  }
+
+  const isMember = await assertIsMember(groupId, targetUserId);
+
+  if (!isMember) {
+    return res.status(404).json({ error: "Este usuário não é membro do grupo." });
+  }
+
+  const isActive = await hasActiveAssignment(groupId, targetUserId, group.eventDate);
+
+  if (isActive) {
+    return res.status(409).json({ error: "Não é possível remover um membro enquanto participar de um sorteio ativo." });
+  }
+
+  await prisma.groupMember.delete({
+    where: { groupId_userId: { groupId, userId: targetUserId } },
+  });
+
+  return res.status(204).send();
+};
+
+//#region Funções auxiliares
+function normalizePair(a: number, b: number) {
+  return a < b ? { userAId: a, userBId: b } : { userAId: b, userBId: a };
+}
+
+async function assertIsMember(groupId: number, userId: number) {
+  const membership = await prisma.groupMember.findUnique({
+    where: { groupId_userId: { groupId, userId } },
+  });
+  return !!membership;
+}
+
+async function hasActiveAssignment(groupId: number, userId: number, eventDate: Date | null) {
+  const isEventActive = eventDate === null || eventDate >= new Date();
+
+  if (!isEventActive) {
+    return false;
+  }
+
+  const assignment = await prisma.assignment.findFirst({
+    where: { groupId, OR: [{ giverId: userId }, { receiverId: userId }] },
+  });
+
+  return !!assignment;
+}
+//#endregion
