@@ -61,6 +61,9 @@ A documentação interativa (Swagger UI) lista todas as rotas disponíveis, seus
 - `POST /auth/reset-password` — redefine a senha usando o token recebido por e-mail. O token só pode ser usado uma vez.
 - `DELETE /auth/me` — exclui a conta do usuário logado. Exige confirmação da senha atual no corpo da requisição. Bloqueada enquanto o usuário for responsável por algum grupo, ou participar de um sorteio cujo evento ainda não ocorreu.
 - `PATCH /auth/me` — atualiza o nome do usuário logado.
+- `POST /auth/change-email` — solicita a troca de e-mail. Exige a senha atual. Envia um link de confirmação para o **novo** e-mail (válido por 30 minutos) e um aviso para o e-mail **atual**, alertando sobre a solicitação.
+- `POST /auth/confirm-email-change` — confirma a troca de e-mail usando o token recebido. Token de uso único.
+- `PATCH /auth/phone` — atualiza o telefone do usuário logado. Exige a senha atual. Hoje a troca é direta (sem confirmação por código); confirmação via SMS/WhatsApp fica pendente até a integração de notificações ser implementada.
 
 > O envio de e-mail é feito através de uma interface (`EmailService`), desacoplada do provedor concreto (`ResendEmailService`). Trocar de provedor de e-mail no futuro não exige alterar os controllers, apenas criar uma nova implementação da interface.
 
@@ -137,5 +140,4 @@ src/
 - [ ] Links de lojas parceiras nas sugestões de presente
 - [ ] Notificações via WhatsApp/Telegram/SMS usando o telefone cadastrado
 - [ ] Monorepo com app mobile (React Native) e/ou web (React), reaproveitando os schemas Zod já existentes
-- [ ] Alterar e-mail — exige fluxo de confirmação em duas etapas (link de confirmação enviado ao **novo** e-mail antes de efetivar a troca), para evitar sequestro de conta via sessão comprometida. Avaliar exigir a senha atual como camada extra.
-- [ ] Alterar telefone — exige confirmação (ex: código via SMS/WhatsApp) antes de efetivar, especialmente relevante quando a feature de notificações existir (evita notificar o número errado em caso de reciclagem de número).
+- [ ] Adicionar confirmação por código (SMS/WhatsApp) na troca de telefone, quando a integração de notificações for implementada — hoje a troca é direta, protegida apenas pela senha atual.
