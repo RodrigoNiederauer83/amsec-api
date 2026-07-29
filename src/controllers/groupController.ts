@@ -41,14 +41,9 @@ export async function createGroup(req:Request, res:Response) {
 }
 
 export const createInvite: RequestHandler = async (req, res) => {
-  const groupId = Number(req.params.id);
   const userId = req.userId!;
-
-  const group = await prisma.group.findUnique({ where: { id: groupId } });
-
-  if (!group) {
-    return res.status(404).json({ error: "Grupo não encontrado." });
-  }
+  const group = req.group!;
+  const groupId = group.id;
 
   if (group.ownerId !== userId) {
     return res.status(403).json({ error: "Apenas o responsável pelo grupo pode gerar convites." });
@@ -198,7 +193,6 @@ export const getGroupDetail: RequestHandler = async (req, res) => {
     return res.status(404).json({ error: "Grupo não encontrado." });
   }
 
-  // em vez de fazer uma segunda consulta ao banco, foram reaproveitados os members que já vieram no include da primeira consulta
   const isMember = group.members.some((m) => m.userId === userId);
 
   if (!isMember) {
@@ -216,13 +210,8 @@ export const getGroupDetail: RequestHandler = async (req, res) => {
 export const updateGroupSettings: RequestHandler = async (req, res) => {
   const groupId = Number(req.params.id);
   const requesterId = req.userId!;
+  const group = req.group!;
   const { eventDate, minGiftCents, maxGiftCents, eventAddress, eventLat, eventLng } = req.body;
-
-  const group = await prisma.group.findUnique({ where: { id: groupId } });
-
-  if (!group) {
-    return res.status(404).json({ error: "Grupo não encontrado." });
-  }
 
   if (group.ownerId !== requesterId) {
     return res.status(403).json({ error: "Apenas o responsável pode alterar as configurações." });
@@ -269,13 +258,8 @@ export const updateGroupSettings: RequestHandler = async (req, res) => {
 export const createExclusion: RequestHandler = async (req, res) => {
   const groupId = Number(req.params.id);
   const requesterId = req.userId!;
+  const group = req.group!;
   const { userAId, userBId } = req.body;
-
-  const group = await prisma.group.findUnique({ where: { id: groupId } });
-
-  if (!group) {
-    return res.status(404).json({ error: "Grupo não encontrado." });
-  }
 
   if (group.ownerId !== requesterId) {
     return res.status(403).json({ error: "Apenas o responsável pode gerenciar exclusões."});
@@ -333,17 +317,9 @@ export const listExclusions: RequestHandler = async (req, res) => {
 }
 
 export const deleteExclusion: RequestHandler = async (req, res) => {
-  const groupId = Number(req.params.id);
   const exclusionId = Number(req.params.exclusionId);
   const requesterId = req.userId!;
-
-  const group = await prisma.group.findUnique({
-    where : { id: groupId },
-  });
-
-  if (!group) {
-    return res.status(404).json({ error: "Grupo não encontrado." })
-  }
+  const group = req.group!;
 
   if (group.ownerId !== requesterId) {
     return res.status(403).json({ error: "Apenas o responsável pode gerenciar exclusões." });
@@ -368,12 +344,7 @@ export const drawGroup: RequestHandler = async (req, res) => {
   const groupId = Number(req.params.id);
   const requesterId = req.userId!;
   const force = req.query.force === "true";
-
-  const group = await prisma.group.findUnique({ where: { id: groupId } });
-
-  if (!group) {
-    return res.status(404).json({ error: "Grupo não encontrado." });
-  }
+  const group = req.group!;
 
   if (group.ownerId !== requesterId) {
     return res.status(403).json({ error: "Apenas o responsável pode realizar o sorteio." });
@@ -545,12 +516,7 @@ export const deleteSuggestion: RequestHandler = async (req, res) => {
 export const deleteGroup: RequestHandler = async (req, res) => {
   const groupId = Number(req.params.id);
   const requesterId = req.userId!;
-
-  const group = await prisma.group.findUnique({ where: { id: groupId } });
-
-  if (!group) {
-    return res.status(404).json({ error: "Grupo não encontrado." });
-  }
+  const group = req.group!;
 
   if (group.ownerId !== requesterId) {
     return res.status(403).json({ error: "Apenas o responsável pode excluir o grupo."});
@@ -567,12 +533,7 @@ export const transferOwnership: RequestHandler = async (req, res) => {
   const groupId = Number(req.params.id);
   const requesterId = req.userId!;
   const { newOwnerId } = req.body;
-
-  const group = await prisma.group.findUnique({ where: { id: groupId } });
-
-  if (!group) {
-    return res.status(404).json({ error: "Grupo não encontrado." });
-  }
+  const group = req.group!;
 
   if (group.ownerId !== requesterId) {
     return res.status(403).json({ error: "Apenas o responsável pode transferir o grupo." });
@@ -623,12 +584,7 @@ export const transferOwnership: RequestHandler = async (req, res) => {
 export const leaveGroup: RequestHandler = async (req, res) => {
   const groupId = Number(req.params.id);
   const userId = req.userId!;
-
-  const group = await prisma.group.findUnique({ where: { id: groupId } });
-
-  if (!group) {
-    return res.status(404).json({ error: "Grupo não encontrado." });
-  }
+  const group = req.group!;
 
   if (group.ownerId === userId) {
     return res.status(409).json({
@@ -659,13 +615,8 @@ export const removeMember: RequestHandler = async (req, res) => {
   const groupId = Number(req.params.id);
   const targetUserId = Number(req.params.userId);
   const requesterId = req.userId!;
-
-  const group = await prisma.group.findUnique({ where: { id: groupId } });
-
-  if (!group) {
-    return res.status(404).json({ error: "Grupo não encontrado." });
-  }
-
+  const group = req.group!;
+  
   if (group.ownerId !== requesterId) {
     return res.status(403).json({ error: "Apenas o responsável pode remover membros." });
   }

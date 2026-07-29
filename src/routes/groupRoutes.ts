@@ -36,11 +36,12 @@ import {
     updateGroupSettingsSchema,
     updateSuggestionSchema
 } from "../schemas/groupSchemas";
+import { loadGroup } from "../middlewares/loadGroup";
 
 const router = Router();
 
 router.post("/", authMiddleware, validate(createGroupSchema), createGroup);
-router.post("/:id/invite", authMiddleware, validate(groupIdParamSchema, "params"), createInvite);
+router.post("/:id/invite", authMiddleware, validate(groupIdParamSchema, "params"), loadGroup, createInvite);
 router.get("/invite/:token", authMiddleware, getInvitePreview);
 router.post("/invite/:token/join", authMiddleware, joinGroupViaInvite);
 router.get("/", authMiddleware, validate(searchGroupsQuerySchema, "query"), searchGroups);
@@ -49,6 +50,7 @@ router.post(
     "/:id/exclusions",
     authMiddleware,
     validate(groupIdParamSchema, "params"),
+    loadGroup,
     validate(createExclusionSchema, "body"),
     createExclusion
 );
@@ -62,12 +64,14 @@ router.delete(
   "/:id/exclusions/:exclusionId",
   authMiddleware,
   validate(groupIdParamSchema, "params"),
+  loadGroup,
   deleteExclusion
 );
 router.post(
   "/:id/draw",
   authMiddleware,
   validate(groupIdParamSchema, "params"),
+  loadGroup,
   validate(drawQuerySchema, "query"),
   drawGroup
 );
@@ -103,18 +107,20 @@ router.patch(
   "/:id/settings",
   authMiddleware,
   validate(groupIdParamSchema, "params"),
+  loadGroup, 
   validate(updateGroupSettingsSchema, "body"),
   updateGroupSettings
 );
-router.delete("/:id", authMiddleware, validate(groupIdParamSchema, "params"), deleteGroup);
+router.delete("/:id", authMiddleware, validate(groupIdParamSchema, "params"), loadGroup, deleteGroup);
 router.patch(
   "/:id/transfer-ownership",
   authMiddleware,
   validate(groupIdParamSchema, "params"),
+  loadGroup,
   validate(transferOwnershipSchema, "body"),
   transferOwnership
 );
-router.delete("/:id/members/me", authMiddleware, validate(groupIdParamSchema, "params"), leaveGroup);
-router.delete("/:id/members/:userId", authMiddleware, validate(groupMemberParamsSchema, "params"), removeMember);
+router.delete("/:id/members/me", authMiddleware, validate(groupIdParamSchema, "params"), loadGroup, leaveGroup);
+router.delete("/:id/members/:userId", authMiddleware, validate(groupMemberParamsSchema, "params"), loadGroup, removeMember);
 
 export default router;
