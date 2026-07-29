@@ -140,4 +140,5 @@ src/
 - [ ] Links de lojas parceiras nas sugestões de presente
 - [ ] Notificações via WhatsApp/Telegram/SMS usando o telefone cadastrado
 - [ ] Monorepo com app mobile (React Native) e/ou web (React), reaproveitando os schemas Zod já existentes
+- [ ] Login via Gmail e Apple (OAuth/Sign in with Apple)
 - [ ] Adicionar confirmação por código (SMS/WhatsApp) na troca de telefone, quando a integração de notificações for implementada — hoje a troca é direta, protegida apenas pela senha atual.
