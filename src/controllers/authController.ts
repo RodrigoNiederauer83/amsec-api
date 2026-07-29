@@ -74,6 +74,7 @@ export async function me(req: Request, res: Response) {
     select: {
       id: true,
       email: true,
+      phoneNumber:true,
       name: true,
       createdAt: true,
     }
@@ -196,6 +197,97 @@ export const updateName: RequestHandler = async (req, res) => {
   const updated = await prisma.user.update({
     where: { id: userId },
     data: { name },
+    select: { id: true, email: true, name: true, phoneNumber: true },
+  });
+
+  return res.status(200).json(updated);
+};
+
+export const requestEmailChange: RequestHandler = async (req, res) => {
+  const userId = req.userId!;
+  const { newEmail, password } = req.body;
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) return res.status(404).json({ error: "Usuário não encontrado." });
+
+  const passwordMatches = await bcrypt.compare(password, user.password);
+  if (!passwordMatches) return res.status(401).json({ error: "Senha incorreta." });
+
+  if (newEmail === user.email) {
+    return res.status(422).json({ error: "O novo e-mail deve ser diferente do atual." });
+  }
+
+  const existingEmail = await prisma.user.findUnique({ where: { email: newEmail } });
+  if (existingEmail) {
+    return res.status(409).json({ error: "Este e-mail já está em uso." });
+  }
+
+  const token = crypto.randomBytes(32).toString("hex");
+  const expiresAt = new Date(Date.now() + EMAIL_CHANGE_EXPIRATION_MINUTES * 60 * 1000);
+
+  await prisma.emailChangeRequest.upsert({
+    where: { userId },
+    update: { newEmail, token, expiresAt },
+    create: { userId, newEmail, token, expiresAt },
+  });
+
+  const confirmLink = `${env.FRONTEND_URL}/confirm-email-change?token=${token}`;
+
+  await emailService.send({
+    to: newEmail,
+    subject: "Confirme seu novo e-mail",
+    html: `<p>Clique para confirmar a troca de e-mail. Expira em ${EMAIL_CHANGE_EXPIRATION_MINUTES} minutos.</p><p><a href="${confirmLink}">${confirmLink}</a></p>`,
+  });
+
+  await emailService.send({
+    to: user.email,
+    subject: "Solicitação de troca de e-mail",
+    html: `<p>Foi solicitada a troca do e-mail da sua conta para ${newEmail}. Se não foi você, troque sua senha imediatamente.</p>`,
+  });
+
+  return res.status(200).json({ message: "Um e-mail de confirmação foi enviado para o novo endereço." });
+};
+
+export const confirmEmailChange: RequestHandler = async (req, res) => {
+  const { token } = req.body;
+
+  const request = await prisma.emailChangeRequest.findUnique({ where: { token } });
+
+  if (!request || request.expiresAt < new Date()) {
+    return res.status(400).json({ error: "Token inválido ou expirado." });
+  }
+
+  const existingEmail = await prisma.user.findUnique({ where: { email: request.newEmail } });
+  if (existingEmail) {
+    return res.status(409).json({ error: "Este e-mail já está em uso." });
+  }
+
+  await prisma.$transaction([
+    prisma.user.update({ where: { id: request.userId }, data: { email: request.newEmail } }),
+    prisma.emailChangeRequest.delete({ where: { id: request.id } }),
+  ]);
+
+  return res.status(200).json({ message: "E-mail atualizado com sucesso." });
+};
+
+export const updatePhone: RequestHandler = async (req, res) => {
+  const userId = req.userId!;
+  const { phoneNumber, password } = req.body;
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) return res.status(404).json({ error: "Usuário não encontrado." });
+
+  const passwordMatches = await bcrypt.compare(password, user.password);
+  if (!passwordMatches) return res.status(401).json({ error: "Senha incorreta." });
+
+  const existing = await prisma.user.findUnique({ where: { phoneNumber } });
+  if (existing) {
+    return res.status(409).json({ error: "Este telefone já está em uso." });
+  }
+
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data: { phoneNumber },
     select: { id: true, email: true, name: true, phoneNumber: true },
   });
 

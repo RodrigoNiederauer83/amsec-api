@@ -138,3 +138,81 @@ registry.registerPath({
     },
   },
 });
+
+registry.registerPath({
+  method: "post",
+  path: "/auth/change-email",
+  summary: "Solicita a troca de e-mail da conta.",
+  tags: ["Auth"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: { content: { "application/json": { schema: requestEmailChangeSchema } } },
+  },
+  responses: {
+    200: {
+      description: "E-mail de confirmação enviado para o novo endereço.",
+      content: { "application/json": { schema: genericMessageResponseSchema } },
+    },
+    401: {
+      description: "Senha incorreta.",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+    409: {
+      description: "Este e-mail já está em uso.",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+    422: {
+      description: "O novo e-mail é igual ao atual.",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/auth/confirm-email-change",
+  summary: "Confirma a troca de e-mail usando o token recebido.",
+  tags: ["Auth"],
+  request: {
+    body: { content: { "application/json": { schema: confirmEmailChangeSchema } } },
+  },
+  responses: {
+    200: {
+      description: "E-mail atualizado com sucesso.",
+      content: { "application/json": { schema: genericMessageResponseSchema } },
+    },
+    400: {
+      description: "Token inválido ou expirado.",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+    409: {
+      description: "Este e-mail já está em uso por outra conta.",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "patch",
+  path: "/auth/phone",
+  summary: "Atualiza o telefone do usuário logado.",
+  tags: ["Auth"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: { content: { "application/json": { schema: updatePhoneSchema } } },
+  },
+  responses: {
+    200: {
+      description: "Telefone atualizado com sucesso.",
+      content: { "application/json": { schema: userResponseSchema } },
+    },
+    401: {
+      description: "Senha incorreta.",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+    409: {
+      description: "Este telefone já está em uso.",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+  },
+});
