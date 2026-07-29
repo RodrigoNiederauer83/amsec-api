@@ -9,6 +9,7 @@ import {
   resetPasswordSchema,
   genericMessageResponseSchema,
   deleteAccountSchema,
+  updateNameSchema,
 } from "../schemas/authSchemas";
 
 registry.registerPath({
@@ -109,6 +110,27 @@ registry.registerPath({
     },
     409: {
       description: "Não é possível excluir: o usuário é responsável por algum grupo, ou participa de um sorteio ativo.",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "patch",
+  path: "/auth/me",
+  summary: "Atualiza o nome do usuário logado.",
+  tags: ["Auth"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    body: { content: { "application/json": { schema: updateNameSchema } } },
+  },
+  responses: {
+    200: {
+      description: "Nome atualizado com sucesso.",
+      content: { "application/json": { schema: userResponseSchema } },
+    },
+    401: {
+      description: "Token inválido ou ausente.",
       content: { "application/json": { schema: errorResponseSchema } },
     },
   },

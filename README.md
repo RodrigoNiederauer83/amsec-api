@@ -60,6 +60,7 @@ A documentação interativa (Swagger UI) lista todas as rotas disponíveis, seus
 - `POST /auth/forgot-password` — solicita recuperação de senha. Sempre responde com a mesma mensagem genérica, independente do e-mail existir ou não (evita expor quais e-mails têm conta cadastrada). Se existir, envia um e-mail com um link contendo um token válido por 15 minutos.
 - `POST /auth/reset-password` — redefine a senha usando o token recebido por e-mail. O token só pode ser usado uma vez.
 - `DELETE /auth/me` — exclui a conta do usuário logado. Exige confirmação da senha atual no corpo da requisição. Bloqueada enquanto o usuário for responsável por algum grupo, ou participar de um sorteio cujo evento ainda não ocorreu.
+- `PATCH /auth/me` — atualiza o nome do usuário logado.
 
 > O envio de e-mail é feito através de uma interface (`EmailService`), desacoplada do provedor concreto (`ResendEmailService`). Trocar de provedor de e-mail no futuro não exige alterar os controllers, apenas criar uma nova implementação da interface.
 
@@ -136,6 +137,5 @@ src/
 - [ ] Links de lojas parceiras nas sugestões de presente
 - [ ] Notificações via WhatsApp/Telegram/SMS usando o telefone cadastrado
 - [ ] Monorepo com app mobile (React Native) e/ou web (React), reaproveitando os schemas Zod já existentes
-- [ ] Alterar nome do usuário
 - [ ] Alterar e-mail — exige fluxo de confirmação em duas etapas (link de confirmação enviado ao **novo** e-mail antes de efetivar a troca), para evitar sequestro de conta via sessão comprometida. Avaliar exigir a senha atual como camada extra.
 - [ ] Alterar telefone — exige confirmação (ex: código via SMS/WhatsApp) antes de efetivar, especialmente relevante quando a feature de notificações existir (evita notificar o número errado em caso de reciclagem de número).

@@ -47,3 +47,7 @@ export const genericMessageResponseSchema = z.object({
 export const deleteAccountSchema = z.object({
   password: z.string().min(1, "Senha é obrigatória.").openapi({ example: "SuaSenhaAtual123" }),
 });
+
+export const updateNameSchema = z.object({
+  name: z.string().min(1, "Nome não pode ser vazio.").max(100).openapi({ example: "João da Silva" }),
+});

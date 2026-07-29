@@ -187,3 +187,16 @@ export const deleteAccount: RequestHandler = async (req, res) => {
 
   return res.status(204).send();
 };
+
+export const updateName: RequestHandler = async (req, res) => {
+  const userId = req.userId!;
+  const { name } = req.body;
+
+  const updated = await prisma.user.update({
+    where: { id: userId },
+    data: { name },
+    select: { id: true, email: true, name: true, phoneNumber: true },
+  });
+
+  return res.status(200).json(updated);
+};
