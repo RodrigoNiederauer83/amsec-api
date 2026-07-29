@@ -14,14 +14,15 @@ model User {
   phoneNumber String   @unique
   createdAt DateTime @default(now())
 
-  ownedGroups           Group[]          @relation("GroupOwner")
-  memberships           GroupMember[]    @relation("GroupMembership")
-  exclusionsAsUserA     GroupExclusion[] @relation("ExclusionA")
-  exclusionsAsUserB     GroupExclusion[] @relation("ExclusionB")
-  assignmentsAsGiver    Assignment[]     @relation("AssignmentGiver")
-  assignmentsAsReceiver Assignment[]     @relation("AssignmentReceiver")
-  giftSuggestions       GiftSuggestion[] @relation("GiftSuggestions")
-  passwordReset         PasswordReset?   @relation("PasswordReset")
+  ownedGroups           Group[]             @relation("GroupOwner")
+  memberships           GroupMember[]       @relation("GroupMembership")
+  exclusionsAsUserA     GroupExclusion[]    @relation("ExclusionA")
+  exclusionsAsUserB     GroupExclusion[]    @relation("ExclusionB")
+  assignmentsAsGiver    Assignment[]        @relation("AssignmentGiver")
+  assignmentsAsReceiver Assignment[]        @relation("AssignmentReceiver")
+  giftSuggestions       GiftSuggestion[]    @relation("GiftSuggestions")
+  passwordReset         PasswordReset?      @relation("PasswordReset")
+  emailChangeRequest    EmailChangeRequest? @relation("EmailChangeRequest")
 }
 
 model Group {
@@ -106,6 +107,16 @@ model PasswordReset {
   userId Int @unique
   user User @relation("PasswordReset", fields: [userId], references: [id], onDelete: Cascade)
   token String @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model EmailChangeRequest {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  user      User     @relation("EmailChangeRequest", fields: [userId], references: [id], onDelete: Cascade)
+  newEmail  String
+  token     String   @unique
   expiresAt DateTime
   createdAt DateTime @default(now())
 }

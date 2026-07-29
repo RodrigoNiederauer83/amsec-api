@@ -51,3 +51,20 @@ export const deleteAccountSchema = z.object({
 export const updateNameSchema = z.object({
   name: z.string().min(1, "Nome não pode ser vazio.").max(100).openapi({ example: "João da Silva" }),
 });
+
+export const requestEmailChangeSchema = z.object({
+  newEmail: z.email("Email inválido").openapi({ example: "novo@email.com" }),
+  password: z.string().min(1, "Senha é obrigatória.").openapi({ example: "SuaSenhaAtual123" }),
+});
+
+export const confirmEmailChangeSchema = z.object({
+  token: z.string().min(1, "Token é obrigatório.").openapi({ example: "a1b2c3..." }),
+});
+
+export const updatePhoneSchema = z.object({
+  phoneNumber: z
+    .string()
+    .regex(/^\+[1-9]\d{7,14}$/, "Telefone deve estar no formato internacional, ex: +5511999998888")
+    .openapi({ example: "+5511999998888" }),
+  password: z.string().min(1, "Senha é obrigatória.").openapi({ example: "SuaSenhaAtual123" }),
+});

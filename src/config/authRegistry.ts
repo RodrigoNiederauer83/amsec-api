@@ -10,6 +10,9 @@ import {
   genericMessageResponseSchema,
   deleteAccountSchema,
   updateNameSchema,
+  confirmEmailChangeSchema,
+  requestEmailChangeSchema,
+  updatePhoneSchema,
 } from "../schemas/authSchemas";
 
 registry.registerPath({

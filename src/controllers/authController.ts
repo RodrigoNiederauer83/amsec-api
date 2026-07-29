@@ -7,6 +7,7 @@ import crypto from "crypto";
 import { emailService } from "../services";
 
 const RESET_TOKEN_EXPIRATION_MINUTES = 15;
+const EMAIL_CHANGE_EXPIRATION_MINUTES = 30;
 
 export async function register(req: Request, res: Response) {
   const { email, password, name, phoneNumber } = req.body;
