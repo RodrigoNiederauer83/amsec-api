@@ -13,6 +13,8 @@ import {
   confirmEmailChangeSchema,
   requestEmailChangeSchema,
   updatePhoneSchema,
+  googleLoginSchema,
+  googleLoginResponseSchema,
 } from "../schemas/authSchemas";
 
 registry.registerPath({
@@ -212,6 +214,30 @@ registry.registerPath({
     },
     409: {
       description: "Este telefone já está em uso.",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/auth/google",
+  summary: "Login ou cadastro via conta Google.",
+  tags: ["Auth"],
+  request: {
+    body: { content: { "application/json": { schema: googleLoginSchema } } },
+  },
+  responses: {
+    200: {
+      description: "Login realizado com sucesso (cria a conta automaticamente no primeiro acesso).",
+      content: { "application/json": { schema: googleLoginResponseSchema } },
+    },
+    401: {
+      description: "Token do Google inválido ou e-mail não verificado.",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+    409: {
+      description: "Já existe uma conta com este e-mail cadastrada de outra forma.",
       content: { "application/json": { schema: errorResponseSchema } },
     },
   },

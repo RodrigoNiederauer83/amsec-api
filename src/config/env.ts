@@ -9,7 +9,8 @@ const envSchema = z.object({
   PORT: z.string().optional(),
   RESEND_API_KEY: z.string().min(1, "RESEND_API_KEY é obrigatória"),
   EMAIL_FROM: z.string().min(1, "EMAIL_FROM é obrigatória"),
-  FRONTEND_URL: z.url("FRONTEND_URL precisa ser uma URL válida")
+  FRONTEND_URL: z.url("FRONTEND_URL precisa ser uma URL válida"),
+  GOOGLE_CLIENT_ID: z.string().min(1, "GOOGLE_CLIENT_ID é obrigatória"),
 });
 
 const parsedEnv = envSchema.safeParse(process.env);
@@ -27,4 +28,5 @@ export const env = {
   RESEND_API_KEY: parsedEnv.data.RESEND_API_KEY,
   EMAIL_FROM: parsedEnv.data.EMAIL_FROM,
   FRONTEND_URL: parsedEnv.data.FRONTEND_URL,
+  GOOGLE_CLIENT_ID: parsedEnv.data.GOOGLE_CLIENT_ID,
 };

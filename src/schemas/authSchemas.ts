@@ -19,7 +19,7 @@ export const userResponseSchema = z.object({
   id: z.number().openapi({ example: 1 }),
   email: z.email().openapi({ example: "usuario@email.com" }),
   name: z.string().nullable().openapi({ example: "João da Silva" }),
-  phoneNumber: z.string().openapi({ example: "+5511999998888" }),
+  phoneNumber: z.string().nullable().openapi({ example: "+5511999998888" }),
 });
 
 export const loginResponseSchema = z.object({
@@ -44,17 +44,13 @@ export const genericMessageResponseSchema = z.object({
   message: z.string().openapi({ example: "Se este e-mail estiver cadastrado, você receberá as instruções." }),
 });
 
-export const deleteAccountSchema = z.object({
-  password: z.string().min(1, "Senha é obrigatória.").openapi({ example: "SuaSenhaAtual123" }),
-});
-
 export const updateNameSchema = z.object({
   name: z.string().min(1, "Nome não pode ser vazio.").max(100).openapi({ example: "João da Silva" }),
 });
 
 export const requestEmailChangeSchema = z.object({
   newEmail: z.email("Email inválido").openapi({ example: "novo@email.com" }),
-  password: z.string().min(1, "Senha é obrigatória.").openapi({ example: "SuaSenhaAtual123" }),
+  password: z.string().optional().openapi({ example: "SuaSenhaAtual123" }),
 });
 
 export const confirmEmailChangeSchema = z.object({
@@ -66,5 +62,19 @@ export const updatePhoneSchema = z.object({
     .string()
     .regex(/^\+[1-9]\d{7,14}$/, "Telefone deve estar no formato internacional, ex: +5511999998888")
     .openapi({ example: "+5511999998888" }),
-  password: z.string().min(1, "Senha é obrigatória.").openapi({ example: "SuaSenhaAtual123" }),
+  password: z.string().optional().openapi({ example: "SuaSenhaAtual123" }),
+});
+
+export const deleteAccountSchema = z.object({
+  password: z.string().optional().openapi({ example: "SuaSenhaAtual123" }),
+});
+
+export const googleLoginSchema = z.object({
+  idToken: z.string().min(1, "idToken é obrigatório.").openapi({ example: "eyJhbGciOi..." }),
+});
+
+export const googleLoginResponseSchema = z.object({
+  token: z.string().openapi({ example: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." }),
+  user: userResponseSchema,
+  needsPhoneNumber: z.boolean().openapi({ example: true }),
 });

@@ -9,6 +9,7 @@ API REST com autenticação (cadastro e login) e gerenciamento de grupos de amig
 - Prisma 7 (SQLite em desenvolvimento)
 - Zod (validação)
 - JWT + bcrypt (autenticação)
+- Login social via Google OAuth 2.0 (google-auth-library)
 - Resend (envio de e-mail transacional)
 - Swagger / OpenAPI (documentação)
 
@@ -28,6 +29,8 @@ API REST com autenticação (cadastro e login) e gerenciamento de grupos de amig
    - `RESEND_API_KEY` — chave de API criada em [resend.com](https://resend.com).
    - `EMAIL_FROM` — endereço remetente dos e-mails (em modo teste do Resend, pode usar `onboarding@resend.dev`).
    - `FRONTEND_URL` — URL base do frontend, usada para montar o link de redefinição de senha (ex: `http://localhost:3000`).
+
+   - `GOOGLE_CLIENT_ID` — Client ID OAuth 2.0 (tipo "Aplicativo da Web") criado no [Google Cloud Console](https://console.cloud.google.com/apis/credentials).
 
 3. Rode as migrations do banco:
    ```bash
@@ -64,6 +67,7 @@ A documentação interativa (Swagger UI) lista todas as rotas disponíveis, seus
 - `POST /auth/change-email` — solicita a troca de e-mail. Exige a senha atual. Envia um link de confirmação para o **novo** e-mail (válido por 30 minutos) e um aviso para o e-mail **atual**, alertando sobre a solicitação.
 - `POST /auth/confirm-email-change` — confirma a troca de e-mail usando o token recebido. Token de uso único.
 - `PATCH /auth/phone` — atualiza o telefone do usuário logado. Exige a senha atual. Hoje a troca é direta (sem confirmação por código); confirmação via SMS/WhatsApp fica pendente até a integração de notificações ser implementada.
+- `POST /auth/google` — login ou cadastro via conta Google. Recebe o `idToken` emitido pelo Google e verifica sua autenticidade. Cria a conta automaticamente no primeiro acesso (sem telefone, que precisa ser completado depois via `PATCH /auth/phone`) e reconhece a conta em acessos seguintes, sem duplicar. Contas Google não têm senha por padrão, mas podem definir uma posteriormente via `POST /auth/forgot-password` (o e-mail deixa claro que é para *definir*, não *redefinir*, uma senha), passando a aceitar os dois métodos de login.
 
 > O envio de e-mail é feito através de uma interface (`EmailService`), desacoplada do provedor concreto (`ResendEmailService`). Trocar de provedor de e-mail no futuro não exige alterar os controllers, apenas criar uma nova implementação da interface.
 
@@ -137,8 +141,7 @@ src/
 ## Roadmap
 
 - [ ] Criptografia do resultado do sorteio a nível de banco (avaliar trade-offs com as garantias relacionais atuais)
-- [ ] Links de lojas parceiras nas sugestões de presente
 - [ ] Notificações via WhatsApp/Telegram/SMS usando o telefone cadastrado
 - [ ] Monorepo com app mobile (React Native) e/ou web (React), reaproveitando os schemas Zod já existentes
-- [ ] Login via Gmail e Apple (OAuth/Sign in with Apple)
+- [ ] Login via Apple (Sign in with Apple) — estrutura de `provider`/`providerId` já pronta no banco; falta a implementação, que depende de uma conta paga no Apple Developer Program (US$ 99/ano) para configurar Services ID e chaves.
 - [ ] Adicionar confirmação por código (SMS/WhatsApp) na troca de telefone, quando a integração de notificações for implementada — hoje a troca é direta, protegida apenas pela senha atual.

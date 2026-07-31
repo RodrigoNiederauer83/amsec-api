@@ -1,8 +1,8 @@
 import { Router } from "express";
-import { register, login, me, resetPassword, forgotPassword, deleteAccount, updateName, confirmEmailChange, requestEmailChange, updatePhone } from "../controllers/authController";
+import { register, login, me, resetPassword, forgotPassword, deleteAccount, updateName, confirmEmailChange, requestEmailChange, updatePhone, googleLogin } from "../controllers/authController";
 import { authMiddleware } from "../middlewares/authMiddleware";
 import { validate } from "../middlewares/validationMiddleware";
-import { confirmEmailChangeSchema, deleteAccountSchema, forgotPasswordSchema, loginSchema, registerSchema, requestEmailChangeSchema, resetPasswordSchema, updateNameSchema, updatePhoneSchema } from "../schemas/authSchemas";
+import { confirmEmailChangeSchema, deleteAccountSchema, forgotPasswordSchema, googleLoginSchema, loginSchema, registerSchema, requestEmailChangeSchema, resetPasswordSchema, updateNameSchema, updatePhoneSchema } from "../schemas/authSchemas";
 
 const router = Router();
 
@@ -16,5 +16,6 @@ router.patch("/me", authMiddleware, validate(updateNameSchema, "body"), updateNa
 router.post("/change-email", authMiddleware, validate(requestEmailChangeSchema, "body"), requestEmailChange);
 router.post("/confirm-email-change", validate(confirmEmailChangeSchema, "body"), confirmEmailChange);
 router.patch("/phone", authMiddleware, validate(updatePhoneSchema, "body"), updatePhone);
+router.post("/google", validate(googleLoginSchema, "body"), googleLogin);
 
 export default router;

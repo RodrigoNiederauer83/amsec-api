@@ -6,12 +6,20 @@ datasource db {
   provider = "sqlite"
 }
 
+enum AuthProvider {
+  LOCAL
+  GOOGLE
+  APPLE
+}
+
 model User {
   id        Int      @id @default(autoincrement())
   email     String   @unique
-  password  String
+  password  String?
   name      String?
-  phoneNumber String   @unique
+  phoneNumber String?   @unique
+  provider AuthProvider @default(LOCAL)
+  providerId  String?
   createdAt DateTime @default(now())
 
   ownedGroups           Group[]             @relation("GroupOwner")
@@ -23,6 +31,8 @@ model User {
   giftSuggestions       GiftSuggestion[]    @relation("GiftSuggestions")
   passwordReset         PasswordReset?      @relation("PasswordReset")
   emailChangeRequest    EmailChangeRequest? @relation("EmailChangeRequest")
+
+  @@unique([provider, providerId])
 }
 
 model Group {

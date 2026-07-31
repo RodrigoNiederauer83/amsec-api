@@ -5,6 +5,9 @@ import { prisma } from "../prisma/client";
 import { env } from "../config/env";
 import crypto from "crypto";
 import { emailService } from "../services";
+import { OAuth2Client } from "google-auth-library";
+
+const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 
 const RESET_TOKEN_EXPIRATION_MINUTES = 15;
 const EMAIL_CHANGE_EXPIRATION_MINUTES = 30;
@@ -44,6 +47,10 @@ export async function login(req: Request, res: Response) {
 
   if (!user) {
     return res.status(401).json({ error: "Email ou senha inválidos." });
+  }
+
+  if (!user.password) {
+    return res.status(409).json({ error: "Esta conta usa login via Google. Use essa opção para entrar." });
   }
 
   const passwordMatches = await bcrypt.compare(password, user.password);
@@ -110,11 +117,14 @@ export async function forgotPassword(req: Request, res: Response) {
   });
 
   const resetLink = `${env.FRONTEND_URL}/reset-password?token=${token}`;
+  const isFirstPassword = user.password === null;
 
   await emailService.send({
     to: user.email,
-    subject: "Recuperação de senha",
-    html: `<p>Clique no link abaixo para redefinir sua senha. Ele expira em ${RESET_TOKEN_EXPIRATION_MINUTES} minutos.</p><p><a href="${resetLink}">${resetLink}</a></p>`,
+    subject: isFirstPassword ? "Defina uma senha para sua conta" : "Recuperação de senha",
+    html: isFirstPassword
+      ? `<p>Sua conta usa login via ${user.provider}. Se preferir também poder entrar com e-mail e senha, defina uma senha pelo link abaixo. Ele expira em ${RESET_TOKEN_EXPIRATION_MINUTES} minutos.</p><p><a href="${resetLink}">${resetLink}</a></p>`
+      : `<p>Clique no link abaixo para redefinir sua senha. Ele expira em ${RESET_TOKEN_EXPIRATION_MINUTES} minutos.</p><p><a href="${resetLink}">${resetLink}</a></p>`,
   });
 
   return res.status(200).json(genericResponse);
@@ -156,10 +166,9 @@ export const deleteAccount: RequestHandler = async (req, res) => {
     return res.status(404).json({ error: "Usuário não encontrado." });
   }
 
-  const passwordMatches = await bcrypt.compare(password, user.password);
-
-  if (!passwordMatches) {
-    return res.status(401).json({ error: "Senha incorreta." });
+  if (user.password) {
+    const passwordMatches = await bcrypt.compare(password, user.password);
+    if (!passwordMatches) return res.status(401).json({ error: "Senha incorreta." });
   }
 
   const ownedGroup = await prisma.group.findFirst({ where: { ownerId: userId } });
@@ -210,8 +219,10 @@ export const requestEmailChange: RequestHandler = async (req, res) => {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) return res.status(404).json({ error: "Usuário não encontrado." });
 
-  const passwordMatches = await bcrypt.compare(password, user.password);
-  if (!passwordMatches) return res.status(401).json({ error: "Senha incorreta." });
+  if (user.password) {
+    const passwordMatches = await bcrypt.compare(password, user.password);
+    if (!passwordMatches) return res.status(401).json({ error: "Senha incorreta." });
+  }
 
   if (newEmail === user.email) {
     return res.status(422).json({ error: "O novo e-mail deve ser diferente do atual." });
@@ -277,8 +288,10 @@ export const updatePhone: RequestHandler = async (req, res) => {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) return res.status(404).json({ error: "Usuário não encontrado." });
 
-  const passwordMatches = await bcrypt.compare(password, user.password);
-  if (!passwordMatches) return res.status(401).json({ error: "Senha incorreta." });
+  if (user.password) {
+    const passwordMatches = await bcrypt.compare(password, user.password);
+    if (!passwordMatches) return res.status(401).json({ error: "Senha incorreta." });
+  }
 
   const existing = await prisma.user.findUnique({ where: { phoneNumber } });
   if (existing) {
@@ -292,4 +305,59 @@ export const updatePhone: RequestHandler = async (req, res) => {
   });
 
   return res.status(200).json(updated);
+};
+
+export const googleLogin: RequestHandler = async (req, res) => {
+  const { idToken } = req.body;
+
+  let payload;
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: env.GOOGLE_CLIENT_ID,
+    });
+    payload = ticket.getPayload();
+  } catch {
+    return res.status(401).json({ error: "Token do Google inválido." });
+  }
+
+  if (!payload || !payload.email_verified || !payload.email) {
+    return res.status(401).json({ error: "Não foi possível verificar o e-mail da conta Google." });
+  }
+
+  let user = await prisma.user.findUnique({
+    where: { provider_providerId: { provider: "GOOGLE", providerId: payload.sub } },
+  });
+
+  if (!user) {
+    const existingByEmail = await prisma.user.findUnique({ where: { email: payload.email } });
+
+    if (existingByEmail) {
+      return res.status(409).json({
+        error: "Já existe uma conta com este e-mail cadastrada de outra forma. Faça login pelo método original.",
+      });
+    }
+
+    user = await prisma.user.create({
+      data: {
+        email: payload.email,
+        name: payload.name ?? null,
+        provider: "GOOGLE",
+        providerId: payload.sub,
+      },
+    });
+  }
+
+  const token = jwt.sign({ userId: user.id }, env.JWT_SECRET, { expiresIn: "7d" });
+
+  return res.status(200).json({
+    token,
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      phoneNumber: user.phoneNumber,
+    },
+    needsPhoneNumber: user.phoneNumber === null,
+  });
 };
