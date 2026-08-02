@@ -43,6 +43,10 @@ registry.registerPath({
   responses: {
     200: { description: "Login realizado com sucesso", content: { "application/json": { schema: loginResponseSchema } } },
     401: { description: "Email ou senha inválidos", content: { "application/json": { schema: errorResponseSchema } } },
+    429: {
+      description: "Muitas tentativas em pouco tempo. Tente novamente mais tarde.",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
   },
 });
 
@@ -75,6 +79,10 @@ registry.registerPath({
       description: "Dados inválidos",
       content: { "application/json": { schema: errorResponseSchema } },
     },
+    429: {
+      description: "Muitas tentativas em pouco tempo. Tente novamente mais tarde.",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
   },
 });
 
@@ -93,6 +101,10 @@ registry.registerPath({
     },
     400: {
       description: "Token inválido ou expirado, ou dados inválidos",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+    429: {
+      description: "Muitas tentativas em pouco tempo. Tente novamente mais tarde.",
       content: { "application/json": { schema: errorResponseSchema } },
     },
   },
@@ -191,6 +203,10 @@ registry.registerPath({
       description: "Este e-mail já está em uso por outra conta.",
       content: { "application/json": { schema: errorResponseSchema } },
     },
+    429: {
+      description: "Muitas tentativas em pouco tempo. Tente novamente mais tarde.",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
   },
 });
 
@@ -238,6 +254,10 @@ registry.registerPath({
     },
     409: {
       description: "Já existe uma conta com este e-mail cadastrada de outra forma.",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+    429: {
+      description: "Muitas tentativas em pouco tempo. Tente novamente mais tarde.",
       content: { "application/json": { schema: errorResponseSchema } },
     },
   },
