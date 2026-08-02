@@ -146,4 +146,4 @@ src/
 - [ ] Notificações via WhatsApp/Telegram/SMS usando o telefone cadastrado
 - [ ] Monorepo com app mobile (React Native) e/ou web (React), reaproveitando os schemas Zod já existentes
 - [ ] Login via Apple (Sign in with Apple) — estrutura de `provider`/`providerId` já pronta no banco; falta a implementação, que depende de uma conta paga no Apple Developer Program (US$ 99/ano) para configurar Services ID e chaves.
-- [ ] Adicionar confirmação por código (SMS/WhatsApp) na troca de telefone, quando a integração de notificações for implementada — hoje a troca é direta, protegida apenas pela senha atual.
+- [ ] Adicionar confirmação por código (SMS/WhatsApp) na troca de telefone e também no cadastro inicial (`POST /auth/register`), quando a integração de notificações for implementada — hoje ambos ficam protegidos apenas pela senha/dados informados, sem verificar posse real do número.
