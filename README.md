@@ -141,6 +141,7 @@ src/
 ## Roadmap
 
 - [ ] Criptografia do resultado do sorteio a nível de banco (avaliar trade-offs com as garantias relacionais atuais)
+- [ ] Rate limiting / proteção contra brute force nas rotas sensíveis (`login`, `forgot-password`, `reset-password`, `google`, `confirm-email-change`) — usar `express-rate-limit` como primeira camada (limite por IP/tempo). Avaliar depois uma segunda camada de bloqueio de conta por tentativas erradas (contador por usuário), se fizer sentido para o projeto.
 - [ ] Notificações via WhatsApp/Telegram/SMS usando o telefone cadastrado
 - [ ] Monorepo com app mobile (React Native) e/ou web (React), reaproveitando os schemas Zod já existentes
 - [ ] Login via Apple (Sign in with Apple) — estrutura de `provider`/`providerId` já pronta no banco; falta a implementação, que depende de uma conta paga no Apple Developer Program (US$ 99/ano) para configurar Services ID e chaves.
