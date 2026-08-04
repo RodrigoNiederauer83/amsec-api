@@ -256,9 +256,9 @@ export const updateGroupSettings: RequestHandler = async (req, res) => {
 };
 
 export const createExclusion: RequestHandler = async (req, res) => {
-  const groupId = Number(req.params.id);
-  const requesterId = req.userId!;
   const group = req.group!;
+  const groupId = group.id;
+  const requesterId = req.userId!;
   const { userAId, userBId } = req.body;
 
   if (group.ownerId !== requesterId) {
@@ -271,6 +271,24 @@ export const createExclusion: RequestHandler = async (req, res) => {
 
   if (members.length !== 2) {
     return res.status(422).json({ error: "Ambos os usuários precisam ser membros do grupo." })
+  }
+
+  const memberCount = await prisma.groupMember.count({ where: { groupId } });
+  const maxExclusions = Math.min(3, Math.max(1, Math.floor(memberCount * 0.10)));
+
+  const [countA, countB] = await Promise.all([
+    prisma.groupExclusion.count({
+      where: { groupId, OR: [{ userAId }, { userBId: userAId }] },
+    }),
+    prisma.groupExclusion.count({
+      where: { groupId, OR: [{ userAId: userBId }, { userBId }] },
+    }),
+  ]);
+
+  if (countA >= maxExclusions || countB >= maxExclusions) {
+    return res.status(422).json({
+      error: `Cada membro pode participar de no máximo ${maxExclusions} exclusões neste grupo.`,
+    });
   }
 
   const { userAId: normA, userBId: normB } = normalizePair(userAId, userBId);
@@ -286,7 +304,7 @@ export const createExclusion: RequestHandler = async (req, res) => {
 
     return res.status(201).json(exclusion);
   } catch (error: any) {
-    if (error === "P2002") {
+    if (error.code === "P2002") {
       return res.status(409).json({ error: "Essa exclusão já existe." });
     }
     throw error;
