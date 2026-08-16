@@ -84,6 +84,7 @@ export async function me(req: Request, res: Response) {
       phoneNumber:true,
       name: true,
       createdAt: true,
+      dependents: { select: { id: true, name: true } },
     }
   })
 
@@ -103,7 +104,7 @@ export async function forgotPassword(req: Request, res: Response) {
 
   const user = await prisma.user.findUnique({ where: { email } });
 
-  if (!user) {
+  if (!user || !user.email) {
     return res.status(200).json(genericResponse);
   }
 
@@ -219,10 +220,12 @@ export const requestEmailChange: RequestHandler = async (req, res) => {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) return res.status(404).json({ error: "Usuário não encontrado." });
 
-  if (user.password) {
-    const passwordMatches = await bcrypt.compare(password, user.password);
-    if (!passwordMatches) return res.status(401).json({ error: "Senha incorreta." });
+  if (!user.email) {
+    return res.status(403).json({ error: "Esta conta não pode alterar e-mail." });
   }
+
+  const passwordMatches = user.password ? await bcrypt.compare(password, user.password) : true;
+  if (!passwordMatches) return res.status(401).json({ error: "Senha incorreta." });
 
   if (newEmail === user.email) {
     return res.status(422).json({ error: "O novo e-mail deve ser diferente do atual." });

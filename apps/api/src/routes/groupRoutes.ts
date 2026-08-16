@@ -19,15 +19,18 @@ import {
     deleteGroup,
     transferOwnership,
     leaveGroup,
-    removeMember
+    removeMember,
+    createDependent
 } from "../controllers/groupController";
 import { authMiddleware } from "../middlewares/authMiddleware";
 import { validate } from "../middlewares/validationMiddleware";
 import {
+  createDependentSchema,
     createExclusionSchema,
     createGroupSchema,
     createSuggestionSchema,
     drawQuerySchema,
+    getAssignmentQuerySchema,
     groupIdParamSchema,
     groupMemberParamsSchema,
     listSuggestionsQuerySchema,
@@ -122,5 +125,20 @@ router.patch(
 );
 router.delete("/:id/members/me", authMiddleware, validate(groupIdParamSchema, "params"), loadGroup, leaveGroup);
 router.delete("/:id/members/:userId", authMiddleware, validate(groupMemberParamsSchema, "params"), loadGroup, removeMember);
+router.post(
+  "/:id/dependents",
+  authMiddleware,
+  validate(groupIdParamSchema, "params"),
+  loadGroup,
+  validate(createDependentSchema, "body"),
+  createDependent
+);
+router.get(
+  "/:id/assignment",
+  authMiddleware,
+  validate(groupIdParamSchema, "params"),
+  validate(getAssignmentQuerySchema, "query"),
+  getMyAssignment
+);
 
 export default router;

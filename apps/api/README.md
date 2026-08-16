@@ -85,6 +85,7 @@ Todas as rotas abaixo exigem autenticação (JWT).
 - `GET /groups/:id` — detalhes de um grupo específico (responsável e lista de membros). Só acessível a quem já é membro do grupo.
 - `PATCH /groups/:id/settings` — atualiza as configurações do grupo (data/hora do evento, valores mínimo/máximo de presente, endereço e coordenadas do evento). Apenas o responsável. Todos os campos são opcionais e podem ser enviados parcialmente; o servidor sempre valida a combinação final dos valores (ex: mínimo não pode ficar maior que o máximo, latitude e longitude precisam ser fornecidas juntas).
 - `DELETE /groups/:id` — O responsável pelo grupo (owner) pode excluir o grupo a qualquer momento.
+- `POST /groups/:id/dependents` — adiciona um dependente ao grupo: um participante sem conta própria (sem login, sem e-mail), vinculado a um responsável (guardião) que já é membro do grupo. Pensado para crianças pequenas ou idosos sem celular/e-mail. Apenas o responsável pelo grupo pode adicionar.
 - `PATCH /groups/:id/transfer-ownership` — transfere a responsabilidade do grupo para outro membro. Apenas o responsável atual pode chamar. Aceita um `newOwnerId` opcional no corpo (precisa ser membro do grupo); se omitido, a responsabilidade passa automaticamente para o membro mais antigo do grupo. Se não houver outro membro, retorna erro sugerindo excluir o grupo.
 - `DELETE /groups/:id/members/me` — o próprio membro sai do grupo voluntariamente. O responsável não pode sair por esta rota (precisa transferir a responsabilidade ou excluir o grupo antes). Bloqueada enquanto o membro participar de um sorteio cujo evento ainda não ocorreu.
 - `DELETE /groups/:id/members/:userId` — o responsável remove outro membro do grupo. Não pode remover a si mesmo por esta rota. Bloqueada enquanto o membro participar de um sorteio cujo evento ainda não ocorreu.
@@ -99,8 +100,9 @@ Todas as rotas abaixo exigem autenticação (JWT).
 
 ### Sorteio
 
-- `POST /groups/:id/draw` — realiza o sorteio do grupo, respeitando as exclusões cadastradas. Apenas o responsável pode disparar. Requer no mínimo 3 membros. Pode ser refeito quantas vezes for necessário, **desde que nenhum participante ainda tenha visualizado o resultado** — a partir do primeiro acesso via `GET /groups/:id/assignment`, o sorteio fica travado. O responsável pode forçar um resorteio mesmo após alguém já ter visualizado, usando `?force=true`.
-- `GET /groups/:id/assignment` — cada membro consulta **apenas o próprio resultado** (quem ele tirou). Não existe rota que exponha todos os pares de uma vez — nem para o responsável — preservando o sigilo do sorteio.
+- `POST /groups/:id/draw` — realiza o sorteio do grupo, respeitando as exclusões cadastradas. Apenas o responsável pode disparar. Requer no mínimo 3 membros e que o grupo já tenha uma data de evento cadastrada (via `PATCH /groups/:id/settings`). Pode ser refeito quantas vezes for necessário, **desde que nenhum participante ainda tenha visualizado o resultado** — a partir do primeiro acesso via `GET /groups/:id/assignment`, o sorteio fica travado. O responsável pode forçar um resorteio mesmo após alguém já ter visualizado, usando `?force=true`.
+> Sempre que um sorteio é realizado (incluindo resorteios via `?force=true`), um e-mail é enviado a cada membro com conta própria avisando que o resultado está disponível — sem revelar quem tirou quem, apenas direcionando para a página do grupo. Dependentes não recebem e-mail; o aviso chega para o guardião, responsável por consultar o resultado em nome deles.
+- `GET /groups/:id/assignment?participantId=` — cada membro consulta o próprio resultado (quem ele tirou). Com `participantId`, um guardião pode consultar o resultado de um dependente sob sua responsabilidade. Não existe rota que exponha todos os pares de uma vez — nem para o responsável — preservando o sigilo do sorteio.
 
 O algoritmo de sorteio usa backtracking: monta o pareamento membro a membro, voltando atrás sempre que uma escolha impede o restante do grupo de fechar corretamente. Isso garante encontrar uma solução válida sempre que ela existir (considerando as exclusões), e retorna erro (`422`) apenas quando é matematicamente impossível de satisfazer todas as regras.
 
@@ -115,7 +117,7 @@ O algoritmo de sorteio usa backtracking: monta o pareamento membro a membro, vol
 
 ## Modelo de dados
 
-- **User** — usuário cadastrado na aplicação (e-mail, senha, nome opcional, telefone único no formato internacional).
+- **User** — usuário cadastrado na aplicação (e-mail, senha, nome opcional, telefone único no formato internacional). Pode ser um dependente (`isDependent`), um participante sem conta própria vinculado a um responsável (`guardianId`) — usado para incluir no sorteio quem não tem celular/e-mail (crianças, idosos).
 - **Group** — grupo de amigo secreto, com um responsável (`owner`) e configurações opcionais (data/hora do evento, valores mínimo/máximo de presente em centavos, endereço e coordenadas do evento).
 - **GroupMember** — relação de participação entre `User` e `Group` (o responsável também é um membro).
 - **GroupInvite** — convite ativo de um grupo, identificado por um token único e com data de expiração.

@@ -1,6 +1,8 @@
 import { Request, RequestHandler, Response } from "express";
 import { prisma } from "../prisma/client";
 import { generateDraw } from "../utils/drawAlgorithm";
+import { emailService } from "../services";
+import { env } from "../config/env";
 
 import crypto from "crypto";
 
@@ -186,6 +188,7 @@ export const getGroupDetail: RequestHandler = async (req, res) => {
     include: {
       owner: { select: { id: true, name: true } },
       members: { include: { user: { select: { id: true, name: true } } } },
+      _count: { select: { assignments: true } },
     },
   });
 
@@ -204,6 +207,7 @@ export const getGroupDetail: RequestHandler = async (req, res) => {
     name: group.name,
     owner: group.owner,
     members: group.members.map((m) => m.user),
+    hasDraw: group._count.assignments > 0,
   });
 };
 
@@ -383,7 +387,10 @@ export const drawGroup: RequestHandler = async (req, res) => {
     });
   }
 
-  const members = await prisma.groupMember.findMany({ where: { groupId } });
+  const members = await prisma.groupMember.findMany({
+    where: { groupId },
+    include: { user: { select: { id: true, email: true, isDependent: true } } },
+  });
   const memberIds = members.map((m) => m.userId);
 
   if (memberIds.length < 3) {
@@ -409,6 +416,24 @@ export const drawGroup: RequestHandler = async (req, res) => {
     }),
   ]);
 
+  const notifiableMembers = members
+    .map((m) => m.user)
+    .filter((user) => !user.isDependent && user.email);
+
+  try {
+    await Promise.all(
+      notifiableMembers.map((member) =>
+        emailService.send({
+          to: member.email!,
+          subject: `Sorteio realizado: ${group.name}`,
+          html: `<p>O sorteio do grupo "${group.name}" foi realizado. Entre no app para conferir o resultado.</p><p><a href="${env.FRONTEND_URL}/groups/${groupId}">Ver grupo</a></p>`,
+        })
+      )
+    );
+  } catch (error) {
+    console.error("Falha ao enviar e-mails de aviso de sorteio:", error);
+  }
+
   return res.status(200).json({
     message: "Sorteio realizado com sucesso.",
     participantsCount: memberIds.length,
@@ -418,9 +443,32 @@ export const drawGroup: RequestHandler = async (req, res) => {
 export const getMyAssignment: RequestHandler = async (req, res) => {
   const groupId = Number(req.params.id);
   const requesterId = req.userId!;
+  const participantIdQuery = req.query.participantId;
+
+  let targetUserId = requesterId;
+
+  if (typeof participantIdQuery === "string") {
+    const participantId = Number(participantIdQuery);
+
+    const dependent = await prisma.user.findFirst({
+      where: { id: participantId, guardianId: requesterId, isDependent: true },
+    });
+
+    if (!dependent) {
+      return res.status(403).json({ error: "Você não é responsável por este participante." });
+    }
+
+    const isMember = await assertIsMember(groupId, participantId);
+
+    if (!isMember) {
+      return res.status(403).json({ error: "Este participante não faz parte deste grupo." });
+    }
+
+    targetUserId = participantId;
+  }
 
   const assignment = await prisma.assignment.findUnique({
-    where: { groupId_giverId: { groupId, giverId: requesterId } },
+    where: { groupId_giverId: { groupId, giverId: targetUserId } },
     include: {
       receiver: { select: { id: true, name: true } },
     },
@@ -662,6 +710,40 @@ export const removeMember: RequestHandler = async (req, res) => {
   });
 
   return res.status(204).send();
+};
+
+export const createDependent: RequestHandler = async (req, res) => {
+  const group = req.group!;
+  const requestId = req.userId!;
+  const { name, guardianId } = req.body;
+
+  if (group.ownerId !== requestId) {
+    return res.status(403).json({ error: "Apenas o responsável pelo grupo pode adicionar dependentes." });
+  }
+
+  const isGuardianMember = await assertIsMember(group.id, guardianId);
+
+  if (!isGuardianMember) {
+    return res.status(422).json({ error: "O responsável pelo dependente precisa ser membro do grupo." });
+  }
+
+  const dependent = await prisma.$transaction(async (tx) => {
+    const newDependent = await tx.user.create({
+      data: { name, isDependent: true, guardianId },
+    });
+
+    await tx.groupMember.create({
+      data: { groupId: group.id, userId: newDependent.id },
+    });
+
+    return newDependent;
+  });
+
+  return res.status(201).json({
+    id: dependent.id,
+    name: dependent.name,
+    guardianId: dependent.guardianId,
+  });
 };
 
 //#region Funções auxiliares

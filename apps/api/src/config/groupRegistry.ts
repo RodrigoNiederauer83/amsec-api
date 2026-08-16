@@ -22,6 +22,9 @@ import {
   listSuggestionsQuerySchema,
   transferOwnershipSchema,
   groupTransferResponseSchema,
+  createDependentSchema,
+  dependentResponseSchema,
+  getAssignmentQuerySchema,
 } from "../schemas/groupSchemas";
 import { errorResponseSchema } from "../schemas/authSchemas";
 
@@ -185,6 +188,7 @@ registry.registerPath({
   security: [{ bearerAuth: [] }],
   request: {
     params: z.object({ id: z.string().openapi({ example: "1" }) }),
+    query: getAssignmentQuerySchema,
   },
   responses: {
     200: { description: "Resultado do sorteio para o usuário autenticado", content: { "application/json": { schema: myAssignmentResponseSchema } } },
@@ -381,6 +385,32 @@ registry.registerPath({
     },
     422: {
       description: "O responsável não pode remover a si mesmo por esta rota.",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+  },
+});
+
+registry.registerPath({
+  method: "post",
+  path: "/groups/{id}/dependents",
+  summary: "Adiciona um dependente ao grupo (participante sem conta própria).",
+  tags: ["Groups"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({ id: z.string().openapi({ example: "1" }) }),
+    body: { content: { "application/json": { schema: createDependentSchema } } },
+  },
+  responses: {
+    201: {
+      description: "Dependente criado e adicionado ao grupo.",
+      content: { "application/json": { schema: dependentResponseSchema } },
+    },
+    403: {
+      description: "Apenas o responsável pelo grupo pode adicionar dependentes.",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+    422: {
+      description: "O responsável indicado não é membro do grupo.",
       content: { "application/json": { schema: errorResponseSchema } },
     },
   },

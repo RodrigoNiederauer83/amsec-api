@@ -169,3 +169,18 @@ export const groupMemberParamsSchema = z.object({
   id: z.string().regex(/^\d+$/),
   userId: z.string().regex(/^\d+$/),
 });
+
+export const createDependentSchema = z.object({
+  name: z.string().min(1, "Nome é obrigatório.").max(100).openapi({ example: "Vovó Maria" }),
+  guardianId: z.number().int().positive().openapi({ example: 2 }),
+});
+
+export const dependentResponseSchema = z.object({
+  id: z.number().openapi({ example: 5 }),
+  name: z.string().nullable().openapi({ example: "Vovó Maria" }),
+  guardianId: z.number().openapi({ example: 2 }),
+});
+
+export const getAssignmentQuerySchema = z.object({
+  participantId: z.string().regex(/^\d+$/, "participantId deve ser um número.").optional(),
+});

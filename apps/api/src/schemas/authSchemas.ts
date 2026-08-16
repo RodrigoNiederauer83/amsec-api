@@ -17,7 +17,7 @@ export const loginSchema = z.object({
 
 export const userResponseSchema = z.object({
   id: z.number().openapi({ example: 1 }),
-  email: z.email().openapi({ example: "usuario@email.com" }),
+  email: z.email().nullable().openapi({ example: "usuario@email.com" }),
   name: z.string().nullable().openapi({ example: "João da Silva" }),
   phoneNumber: z.string().nullable().openapi({ example: "+5511999998888" }),
 });
