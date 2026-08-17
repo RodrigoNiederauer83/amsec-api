@@ -208,6 +208,7 @@ export const getGroupDetail: RequestHandler = async (req, res) => {
     owner: group.owner,
     members: group.members.map((m) => m.user),
     hasDraw: group._count.assignments > 0,
+    eventDate: group.eventDate,
   });
 };
 
