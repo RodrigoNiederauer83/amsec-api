@@ -25,8 +25,8 @@ import {
   createDependentSchema,
   dependentResponseSchema,
   getAssignmentQuerySchema,
-} from "../schemas/groupSchemas";
-import { errorResponseSchema } from "../schemas/authSchemas";
+} from "@amsec/shared";
+import { errorResponseSchema } from "@amsec/shared";
 
 registry.registerPath({
   method: "post",

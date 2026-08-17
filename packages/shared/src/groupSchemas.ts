@@ -1,3 +1,4 @@
+import "./zodExtend";
 import { z } from "zod";
 
 export const createGroupSchema = z.object({

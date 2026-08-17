@@ -15,7 +15,7 @@ import {
   updatePhoneSchema,
   googleLoginSchema,
   googleLoginResponseSchema,
-} from "../schemas/authSchemas";
+} from "@amsec/shared";
 
 registry.registerPath({
   method: "post",

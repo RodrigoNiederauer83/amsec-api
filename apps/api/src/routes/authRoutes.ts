@@ -2,7 +2,7 @@ import { Router } from "express";
 import { register, login, me, resetPassword, forgotPassword, deleteAccount, updateName, confirmEmailChange, requestEmailChange, updatePhone, googleLogin } from "../controllers/authController";
 import { authMiddleware } from "../middlewares/authMiddleware";
 import { validate } from "../middlewares/validationMiddleware";
-import { confirmEmailChangeSchema, deleteAccountSchema, forgotPasswordSchema, googleLoginSchema, loginSchema, registerSchema, requestEmailChangeSchema, resetPasswordSchema, updateNameSchema, updatePhoneSchema } from "../schemas/authSchemas";
+import { confirmEmailChangeSchema, deleteAccountSchema, forgotPasswordSchema, googleLoginSchema, loginSchema, registerSchema, requestEmailChangeSchema, resetPasswordSchema, updateNameSchema, updatePhoneSchema } from "@amsec/shared";
 import { loginRateLimiter, sensitiveActionRateLimiter } from "../middlewares/rateLimiter";
 
 const router = Router();

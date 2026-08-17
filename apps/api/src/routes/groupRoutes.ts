@@ -38,7 +38,7 @@ import {
     transferOwnershipSchema,
     updateGroupSettingsSchema,
     updateSuggestionSchema
-} from "../schemas/groupSchemas";
+} from "@amsec/shared";
 import { loadGroup } from "../middlewares/loadGroup";
 
 const router = Router();
