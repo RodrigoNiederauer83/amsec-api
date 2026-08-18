@@ -17,6 +17,9 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: "Secretin — Amigo secreto sem complicação",
   description: "O Secretin organiza seu amigo secreto do início ao fim: convide, defina as regras e deixe o sorteio revelar quem é quem, sem grupo de WhatsApp lotado de spoiler.",
+  icons: {
+    icon: "/images/favicon.png",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
