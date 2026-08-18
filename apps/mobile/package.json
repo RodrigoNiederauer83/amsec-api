@@ -12,6 +12,7 @@
     "expo-constants": "~57.0.11",
     "expo-router": "~57.0.13",
     "expo-secure-store": "~57.0.1",
+    "expo-splash-screen": "~57.0.7",
     "expo-status-bar": "~57.0.1",
     "react": "19.2.3",
     "react-hook-form": "^7.85.0",
