@@ -20,6 +20,12 @@ export const metadata: Metadata = {
   icons: {
     icon: "/images/favicon.png",
   },
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Secretin",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
