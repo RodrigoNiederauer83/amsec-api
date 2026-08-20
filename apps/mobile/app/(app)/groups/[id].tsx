@@ -70,7 +70,11 @@ export default function GroupDetailScreen() {
   function handleDateChange(event: any, selectedDate?: Date) {
     setShowPicker(Platform.OS === "ios");
     if (selectedDate) {
-      setDateMutation.mutate(selectedDate.toISOString());
+      const year = selectedDate.getFullYear();
+      const month = selectedDate.getMonth();
+      const day = selectedDate.getDate();
+      const neutralDate = new Date(Date.UTC(year, month, day, 12, 0, 0));
+      setDateMutation.mutate(neutralDate.toISOString());
     }
   }
 
@@ -96,7 +100,7 @@ export default function GroupDetailScreen() {
       <View style={styles.infoBox}>
         <Text style={styles.infoLabel}>Data do evento</Text>
         <Text style={styles.infoValue}>
-          {group.eventDate ? new Date(group.eventDate).toLocaleDateString("pt-BR") : "Não definida"}
+          {group.eventDate ? new Date(group.eventDate).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "Não definida"}
         </Text>
         {isOwner && (
           <Pressable onPress={() => setShowPicker(true)}>
