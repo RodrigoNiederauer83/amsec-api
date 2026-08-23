@@ -50,6 +50,10 @@ Consulte [`apps/api/README.md`](apps/api/README.md) para configuração de vari�
 - Transferência de responsável e remoção/saída de membros.
 - PWA instalável (Android e iOS) com ícone, splash e funcionamento offline básico.
 
+## Notas de desenvolvimento
+
+- **Testando no Safari/iOS**: o modo de desenvolvimento (`npm run dev`, que usa Turbopack) tem uma incompatibilidade conhecida com Safari/WebKit — componentes que dependem de Context (como o botão de login do Google) podem não carregar corretamente. Para testar no Simulador de iPhone ou num iPhone físico, use o build de produção: `npm run build && npm run start` (dentro de `apps/web`). Chrome/Android continuam funcionando normalmente com `npm run dev`.
+
 ## Roadmap (visão geral do monorepo)
 
 - [ ] Publicar a API em produção (hoje só roda em localhost/rede local)
