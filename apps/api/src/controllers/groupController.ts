@@ -187,7 +187,7 @@ export const getGroupDetail: RequestHandler = async (req, res) => {
     where: { id: groupId },
     include: {
       owner: { select: { id: true, name: true } },
-      members: { include: { user: { select: { id: true, name: true } } } },
+      members: { include: { user: { select: { id: true, name: true, avatarUrl: true } } } },
       _count: { select: { assignments: true } },
     },
   });

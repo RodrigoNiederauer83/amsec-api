@@ -67,7 +67,7 @@ export async function login(req: Request, res: Response) {
 
   return res.status(200).json({
     token,
-    user : {
+    user: {
       id: user.id,
       email: user.email,
       name: user.name
@@ -81,7 +81,7 @@ export async function me(req: Request, res: Response) {
     select: {
       id: true,
       email: true,
-      phoneNumber:true,
+      phoneNumber: true,
       name: true,
       createdAt: true,
       dependents: { select: { id: true, name: true } },
@@ -347,7 +347,13 @@ export const googleLogin: RequestHandler = async (req, res) => {
         name: payload.name ?? null,
         provider: "GOOGLE",
         providerId: payload.sub,
+        avatarUrl: payload.picture ?? null,
       },
+    });
+  } else if (payload.picture && payload.picture !== user.avatarUrl) {
+    user = await prisma.user.update({
+      where: { id: user.id },
+      data: { avatarUrl: payload.picture },
     });
   }
 

@@ -17,6 +17,7 @@ model User {
   email       String?       @unique
   password    String?
   name        String?
+  avatarUrl   String?
   phoneNumber String?       @unique
   provider    AuthProvider  @default(LOCAL)
   providerId  String?

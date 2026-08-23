@@ -21,6 +21,7 @@ export const userResponseSchema = z.object({
   email: z.email().nullable().openapi({ example: "usuario@email.com" }),
   name: z.string().nullable().openapi({ example: "João da Silva" }),
   phoneNumber: z.string().nullable().openapi({ example: "+5511999998888" }),
+  avatarUrl: z.string().nullable().openapi({ example: "https://lh3.googleusercontent.com/..." }),
 });
 
 export const loginResponseSchema = z.object({
