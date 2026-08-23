@@ -1,3 +1,4 @@
+import path from "path";
 import withSerwistInit from "@serwist/next";
 import type { NextConfig } from "next";
 
@@ -8,7 +9,9 @@ const withSerwist = withSerwistInit({
 });
 
 const nextConfig: NextConfig = {
-  turbopack: {},
+  turbopack: {
+    root: path.join(__dirname, "../../"),
+  },
 };
 
 export default withSerwist(nextConfig);

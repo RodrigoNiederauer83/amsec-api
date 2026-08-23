@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiClient } from "@/api/client";
 import { useAuth } from "@/auth/AuthContext";
+import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
 
 type LoginForm = z.infer<typeof loginSchema>;
 
@@ -25,6 +26,19 @@ export default function LoginPage() {
       router.push("/groups");
     } catch (error: any) {
       alert(error.response?.data?.error ?? "Erro ao entrar. Tente novamente.");
+    }
+  }
+
+  async function handleGoogleSuccess(credentialResponse: CredentialResponse) {
+    if (!credentialResponse.credential) return;
+    try {
+      const response = await apiClient.post("/auth/google", {
+        idToken: credentialResponse.credential,
+      });
+      await signIn(response.data.token);
+      router.push("/groups");
+    } catch (error: any) {
+      alert(error.response?.data?.error ?? "Erro ao entrar com Google.");
     }
   }
 
@@ -59,6 +73,24 @@ export default function LoginPage() {
           {isSubmitting ? "Entrando..." : "Entrar"}
         </button>
       </form>
+
+      <div className="my-5 flex items-center gap-3">
+        <div className="flex-1 h-px bg-surface" />
+        <span className="text-xs text-muted">ou</span>
+        <div className="flex-1 h-px bg-surface" />
+      </div>
+
+      <div className="flex justify-center">
+        <GoogleLogin
+          onSuccess={handleGoogleSuccess}
+          onError={() => alert("Erro ao entrar com Google.")}
+          shape="pill"
+          theme="outline"
+          size="large"
+          text="continue_with"
+          width="320"
+        />
+      </div>
 
       <Link href="/register" className="block text-center text-primary mt-5">
         Não tem conta? Cadastre-se

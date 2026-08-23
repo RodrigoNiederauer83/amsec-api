@@ -6,12 +6,13 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiClient } from "@/api/client";
 import { useAuth } from "@/auth/AuthContext";
+import { Avatar } from "@/components/Avatar";
 
 type GroupDetail = {
   id: number;
   name: string;
   owner: { id: number; name: string | null };
-  members: { id: number; name: string | null }[];
+  members: { id: number; name: string | null; avatarUrl: string | null }[];
   hasDraw: boolean;
   eventDate: string | null;
 };
@@ -79,7 +80,7 @@ export default function GroupDetailPage() {
   const isOwner = group.owner.id === user?.id;
 
   return (
-    <div className="max-w-2xl mx-auto px-6 py-10">
+    <div className="max-w-2xl mx-auto px-6 py-10 justify-between">
       <Link href="/groups" className="text-primary mb-4 inline-block">‹ Voltar</Link>
 
       <h1 className="font-display text-2xl font-semibold text-primary-dark">{group.name}</h1>
@@ -127,7 +128,7 @@ export default function GroupDetailPage() {
       {group.hasDraw && (
         <Link
           href={`/groups/${id}/result`}
-          className="block text-center w-full bg-surface text-primary rounded-full py-3.5 font-semibold mb-6"
+          className="block text-center w-full bg-primary text-white rounded-full py-3.5 font-semibold mb-6 hover:bg-primary-dark transition-colors"
         >
           Ver meu resultado
         </Link>
@@ -136,13 +137,29 @@ export default function GroupDetailPage() {
       <h2 className="font-display font-semibold text-primary-dark mt-6 mb-3">
         Integrantes ({group.members.length})
       </h2>
-      <div className="space-y-2">
+      <div className="space-y-2 mb-6">
         {group.members.map((member) => (
-          <div key={member.id} className="bg-surface rounded-xl p-3">
-            <p className="text-primary-dark font-medium capitalize">{member.name}</p>
+          <div key={member.id} className="flex items-center justify-between gap-2 bg-surface rounded-xl p-3">
+            <div className="flex items-center gap-3">
+              <Avatar name={member.name} avatarUrl={member.avatarUrl} />
+              <p className="text-primary-dark font-medium capitalize">{member.name}</p>
+            </div>
+            <Link
+              href={`/groups/${id}/suggestions/${member.id}?name=${encodeURIComponent(member.name ?? "")}`}
+              className="text-xs text-primary font-semibold shrink-0"
+            >
+              Ver sugestões
+            </Link>
           </div>
         ))}
       </div>
+
+      <Link
+        href={`/groups/${id}/suggestions`}
+        className="block text-center w-full bg-primary text-white rounded-full py-3.5 font-semibold hover:bg-primary-dark transition-colors"
+      >
+        Bisbilhotar sugestões
+      </Link>
     </div>
   );
 }
