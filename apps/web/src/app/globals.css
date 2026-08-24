@@ -57,3 +57,19 @@
     transition-duration: 0.01ms !important;
   }
 }
+
+.shadow-card {
+  box-shadow: 4px 4px 4px rgba(59, 7, 100, 0.3);
+}
+
+.shadow-button {
+  box-shadow: 0 8px 20px rgba(124, 58, 237, 0.35);
+}
+
+.rounded-28px {
+  border-radius: 28px;
+}
+
+.bg-brand-gradient {
+  background: linear-gradient(120deg, #8B5CF6, #7C3AED 55%, #6D28D9);
+}

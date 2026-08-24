@@ -85,12 +85,13 @@ export const groupSettingsResponseSchema = z.object({
 });
 
 export const updateGroupSettingsSchema = z.object({
+  name: z.string().min(1, "Nome não pode ser vazio.").optional().openapi({ example: "Natal 2026" }),
   eventDate: z.iso.datetime().optional().openapi({ example: "2026-12-24T20:00:00.000Z" }),
-  minGiftCents: z.number().int().nonnegative().optional().openapi({ example: 2000 }),
-  maxGiftCents: z.number().int().nonnegative().optional().openapi({ example: 5000 }),
-  eventAddress: z.string().max(300).optional().openapi({ example: "Rua das Flores, 123 - Centro, São Paulo" }),
-  eventLat: z.number().min(-90).max(90).optional().openapi({ example: -23.5505 }),
-  eventLng: z.number().min(-180).max(180).optional().openapi({ example: -46.6333 }),
+  minGiftCents: z.number().int().nonnegative().nullable().optional().openapi({ example: 2000 }),
+  maxGiftCents: z.number().int().nonnegative().nullable().optional().openapi({ example: 5000 }),
+  eventAddress: z.string().max(300).optional().openapi({ example: "Rua das Flores, 123" }),
+  eventLat: z.number().min(-90).max(90).optional(),
+  eventLng: z.number().min(-180).max(180).optional(),
 });
 
 // O .refine(...) adiciona uma regra de validação customizada, 

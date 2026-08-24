@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useQueryClient } from "@tanstack/react-query";
+import { KeyRound } from "lucide-react";
 import { apiClient } from "@/api/client";
 
 export default function JoinGroupPage() {
@@ -27,22 +29,30 @@ export default function JoinGroupPage() {
   }
 
   return (
-    <div className="max-w-sm mx-auto px-6 py-16">
-      <h1 className="font-display text-2xl font-semibold text-primary-dark text-center mb-2">
+    <div className="max-w-sm mx-auto px-6 py-10">
+      <Link href="/groups" className="text-primary mb-4 inline-block">‹ Voltar</Link>
+
+      <div className="bg-surface rounded-2xl w-14 h-14 flex items-center justify-center mb-4">
+        <KeyRound className="w-6 h-6 text-primary" />
+      </div>
+
+      <h1 className="font-display text-3xl font-semibold text-primary-dark mb-1">
         Entrar em um grupo
       </h1>
-      <p className="text-muted text-center text-sm mb-8">Cole o código que você recebeu</p>
+      <p className="text-muted text-sm mb-8">Cole o código que você recebeu</p>
+
       <form onSubmit={handleJoin}>
         <input
           value={token}
           onChange={(e) => setToken(e.target.value)}
-          placeholder="Código do convite"
-          className="w-full border border-surface rounded-xl p-3.5 text-base mb-4"
+          placeholder="Cole o código que você recebeu"
+          className="w-full appearance-none bg-surface rounded-xl p-3.5 text-base text-primary-dark placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary mb-4"
         />
+
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-primary text-white rounded-full py-3.5 font-semibold disabled:opacity-50"
+          className="w-full bg-brand-gradient text-white rounded-2xl py-3.5 font-semibold shadow-button disabled:opacity-50"
         >
           {isSubmitting ? "Entrando..." : "Entrar"}
         </button>

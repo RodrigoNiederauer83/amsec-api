@@ -1,20 +1,24 @@
 "use client";
 
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { loginSchema } from "@amsec/shared";
 import { z } from "zod";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
+import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
 import { apiClient } from "@/api/client";
 import { useAuth } from "@/auth/AuthContext";
-import { GoogleLogin, CredentialResponse } from "@react-oauth/google";
 
 type LoginForm = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const router = useRouter();
   const { signIn } = useAuth();
+  const [showPassword, setShowPassword] = useState(false);
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
   });
@@ -42,33 +46,61 @@ export default function LoginPage() {
     }
   }
 
+  const inputClass =
+    "w-full appearance-none bg-surface rounded-xl py-3.5 pl-11 pr-11 text-base text-primary-dark placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary border border-solid border-[#EBDFFB]";
+
   return (
     <div className="w-full max-w-sm">
-      <h1 className="font-display text-3xl font-semibold text-primary-dark text-center mb-8">
-        Secretin
-      </h1>
+      <div className="bg-white flex flex-col items-center">
+        <Image src="/images/logo_vertical.png" alt="" width={160} height={160} />
+      </div>
+
+      <p className="text-center text-muted text-sm mb-8">
+        Seu amigo secreto, sem bagunça no grupo da família.
+      </p>
 
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-1">
-        <input
-          {...register("email")}
-          type="email"
-          placeholder="E-mail"
-          className="w-full appearance-none bg-surface rounded-xl p-3.5 text-base text-primary-dark placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary"
-        />
-        {errors.email && <p className="text-red-600 text-xs mb-3">{errors.email.message}</p>}
+        <div className="relative">
+          <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
+          <input
+            {...register("email")}
+            type="email"
+            placeholder="E-mail"
+            autoCapitalize="none"
+            className={inputClass}
+          />
+        </div>
+        {errors.email && <p className="text-red-600 text-xs mb-3 mt-1">{errors.email.message}</p>}
 
-        <input
-          {...register("password")}
-          type="password"
-          placeholder="Senha"
-          className="w-full appearance-none bg-surface rounded-xl p-3.5 text-base text-primary-dark placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-primary"
-        />
-        {errors.password && <p className="text-red-600 text-xs mb-3">{errors.password.message}</p>}
+        <div className="relative">
+          <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-primary" />
+          <input
+            {...register("password")}
+            type={showPassword ? "text" : "password"}
+            placeholder="Senha"
+            className={inputClass}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted"
+            aria-label={showPassword ? "Ocultar senha" : "Mostrar senha"}
+          >
+            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+          </button>
+        </div>
+        {errors.password && <p className="text-red-600 text-xs mt-1">{errors.password.message}</p>}
+
+        <div className="text-right mt-2 mb-4">
+          <Link href="/forgot-password" className="text-sm text-primary">
+            Esqueci minha senha
+          </Link>
+        </div>
 
         <button
           type="submit"
           disabled={isSubmitting}
-          className="w-full bg-primary text-white rounded-full p-4 font-semibold mt-4 hover:bg-primary-dark transition-colors disabled:opacity-50"
+          className="w-full bg-brand-gradient text-white rounded-2xl p-4 font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 shadow-button"
         >
           {isSubmitting ? "Entrando..." : "Entrar"}
         </button>
@@ -92,9 +124,9 @@ export default function LoginPage() {
         />
       </div>
 
-      <Link href="/register" className="block text-center text-primary mt-5">
-        Não tem conta? Cadastre-se
-      </Link>
+      <p className="text-center text-muted mt-6">
+        Não tem conta? <Link href="/register" className="text-primary font-semibold">Cadastre-se</Link>
+      </p>
     </div>
   );
 }
