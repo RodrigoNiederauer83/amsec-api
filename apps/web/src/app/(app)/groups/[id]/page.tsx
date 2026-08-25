@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -44,6 +45,7 @@ export default function GroupDetailPage() {
   const router = useRouter();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
   const { data: group, isLoading } = useQuery({
     queryKey: ["group", id],
@@ -95,6 +97,17 @@ export default function GroupDetailPage() {
     const [year, month, day] = event.target.value.split("-").map(Number);
     const neutralDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
     setDateMutation.mutate(neutralDate.toISOString());
+  }
+
+  function openDatePicker() {
+    const input = dateInputRef.current;
+    if (!input) return;
+    try {
+      input.showPicker();
+    } catch {
+      input.focus();
+      input.click();
+    }
   }
 
   if (isLoading || !group) {
@@ -149,19 +162,17 @@ export default function GroupDetailPage() {
 
           {isOwner && (
             <div className="flex items-center gap-2 mt-4">
-              <div className="relative flex-1">
-                <span className="flex items-center justify-center gap-1.5 text-[10px] text-primary bg-surface rounded-xl py-2 font-semibold pointer-events-none">
+              <div className="relative flex-1 h-8">
+                <span className="absolute inset-0 flex items-center justify-center gap-1.5 text-[10px] text-primary bg-surface rounded-xl font-semibold pointer-events-none">
                   <Calendar className="w-3.5 h-3.5" /> {group.eventDate ? "Alterar data" : "Definir data"}
                 </span>
                 <input
                   type="date"
                   onChange={handleDateChange}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                  className="absolute inset-0 w-full h-1/2 opacity-0 cursor-pointer"
                 />
               </div>
-              <button
-                onClick={() => inviteMutation.mutate()}
-                disabled={inviteMutation.isPending}
+              <button onClick={() => inviteMutation.mutate()} disabled={inviteMutation.isPending}
                 className="flex items-center justify-center gap-1.5 flex-1 text-[10px] text-primary bg-surface rounded-xl py-2 font-semibold disabled:opacity-50"
               >
                 <UserPlus className="w-3.5 h-3.5" /> Convidar
@@ -222,11 +233,8 @@ export default function GroupDetailPage() {
         </div>
       </div>
 
-      <div className="px-6 pb-10">
-        <Link
-          href={`/groups/${id}/suggestions`}
-          className="block text-center w-full border border-surface text-primary rounded-2xl py-3.5 font-semibold"
-        >
+      <div className="px-6 pb-10" style={{ paddingBottom: "max(2.5rem, env(safe-area-inset-bottom))" }}>
+        <Link href={`/groups/${id}/suggestions`} className="block text-center w-full border border-surface text-primary rounded-2xl py-3.5 font-semibold">
           Bisbilhotar sugestões
         </Link>
       </div>

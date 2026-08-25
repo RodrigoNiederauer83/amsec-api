@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Fredoka, Inter } from "next/font/google";
 import { Providers } from "@/components/Providers";
 import "./globals.css";
@@ -27,6 +27,10 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "Secretin",
   },
+};
+
+export const viewport: Viewport = {
+  themeColor: "#22026b",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
