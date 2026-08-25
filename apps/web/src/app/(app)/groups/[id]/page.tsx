@@ -4,7 +4,7 @@ import { useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Pencil, Calendar, Wallet, UserPlus, RefreshCw, Gift, ChevronRight, Eye } from "lucide-react";
+import { Pencil, Calendar, Wallet, UserPlus, RefreshCw, Gift, ChevronRight, Eye, LogOut, X } from "lucide-react";
 import { apiClient } from "@/api/client";
 import { useAuth } from "@/auth/AuthContext";
 import { Avatar } from "@/components/Avatar";
@@ -92,22 +92,42 @@ export default function GroupDetailPage() {
     onError: (error: any) => alert(error.response?.data?.error ?? "Não foi possível realizar o sorteio."),
   });
 
+  const removeMemberMutation = useMutation({
+    mutationFn: async (memberId: number) => {
+      await apiClient.delete(`/groups/${id}/members/${memberId}`);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["group", id] }),
+    onError: (error: any) => alert(error.response?.data?.error ?? "Não foi possível remover este membro."),
+  });
+
+  const leaveGroupMutation = useMutation({
+    mutationFn: async () => {
+      await apiClient.delete(`/groups/${id}/members/me`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["groups"] });
+      router.push("/groups");
+    },
+    onError: (error: any) => alert(error.response?.data?.error ?? "Não foi possível sair do grupo."),
+  });
+
+  function handleRemoveMember(memberId: number, memberName: string | null) {
+    if (confirm(`Remover ${memberName} do grupo?`)) {
+      removeMemberMutation.mutate(memberId);
+    }
+  }
+
+  function handleLeaveGroup() {
+    if (confirm("Tem certeza que deseja sair deste grupo?")) {
+      leaveGroupMutation.mutate();
+    }
+  }
+
   function handleDateChange(event: React.ChangeEvent<HTMLInputElement>) {
     if (!event.target.value) return;
     const [year, month, day] = event.target.value.split("-").map(Number);
     const neutralDate = new Date(Date.UTC(year, month - 1, day, 12, 0, 0));
     setDateMutation.mutate(neutralDate.toISOString());
-  }
-
-  function openDatePicker() {
-    const input = dateInputRef.current;
-    if (!input) return;
-    try {
-      input.showPicker();
-    } catch {
-      input.focus();
-      input.click();
-    }
   }
 
   if (isLoading || !group) {
@@ -187,7 +207,6 @@ export default function GroupDetailPage() {
             </div>
           )}
         </div>
-
         {group.hasDraw && (
           <Link
             href={`/groups/${id}/result`}
@@ -208,6 +227,11 @@ export default function GroupDetailPage() {
 
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-display font-semibold text-primary-dark">Integrantes ({group.members.length})</h2>
+          {isOwner && (
+            <Link href={`/groups/${id}/dependents`} className="text-xs text-primary font-semibold">
+              + Adicionar dependente
+            </Link>
+          )}
         </div>
         <div className="space-y-2 mb-8">
           {group.members.map((member) => (
@@ -222,17 +246,28 @@ export default function GroupDetailPage() {
                   </p>
                 </div>
               </div>
-              <Link
-                href={`/groups/${id}/suggestions/${member.id}?name=${encodeURIComponent(member.name ?? "")}`}
-                className="flex items-center gap-1 shrink-0 py-1.75 px-2.5 rounded-full bg-[#F7F2FF] text-[#6D28D9] text-[11.5px] font-bold"
-              >
-                <Eye className="w-3 h-3" /> Sugestões
-              </Link>
+              <div className="flex items-center gap-1.5 shrink-0">
+                <Link
+                  href={`/groups/${id}/suggestions/${member.id}?name=${encodeURIComponent(member.name ?? "")}`}
+                  className="flex items-center gap-1 py-1.75 px-2.5 rounded-full bg-[#F7F2FF] text-[#6D28D9] text-[11.5px] font-bold"
+                >
+                  <Eye className="w-3 h-3" /> Sugestões
+                </Link>
+                {isOwner && member.id !== group.owner.id && (
+                  <button
+                    onClick={() => handleRemoveMember(member.id, member.name)}
+                    disabled={removeMemberMutation.isPending}
+                    aria-label="Remover membro"
+                    className="bg-white rounded-lg p-1.5"
+                  >
+                    <X className="w-3.5 h-3.5 text-red-600" />
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
       </div>
-
       <div className="px-6 pb-10" style={{ paddingBottom: "max(2.5rem, env(safe-area-inset-bottom))" }}>
         <Link href={`/groups/${id}/suggestions`} className="block text-center w-full border border-surface text-primary rounded-2xl py-3.5 font-semibold">
           Bisbilhotar sugestões
