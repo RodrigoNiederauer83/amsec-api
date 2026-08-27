@@ -20,7 +20,8 @@ import {
     transferOwnership,
     leaveGroup,
     removeMember,
-    createDependent
+    createDependent,
+    deleteDependent
 } from "../controllers/groupController";
 import { authMiddleware } from "../middlewares/authMiddleware";
 import { validate } from "../middlewares/validationMiddleware";
@@ -139,6 +140,13 @@ router.get(
   validate(groupIdParamSchema, "params"),
   validate(getAssignmentQuerySchema, "query"),
   getMyAssignment
+);
+router.delete(
+  "/:id/dependents/:dependentId",
+  authMiddleware,
+  validate(groupIdParamSchema, "params"),
+  loadGroup,
+  deleteDependent
 );
 
 export default router;

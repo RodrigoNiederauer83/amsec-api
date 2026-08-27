@@ -8,7 +8,7 @@ import { UserPlus, Check } from "lucide-react";
 import { apiClient } from "@/api/client";
 import { useAuth } from "@/auth/AuthContext";
 
-type Member = { id: number; name: string | null };
+type Member = { id: number; name: string | null; isDependent: boolean };
 type GroupDetail = { members: Member[] };
 
 export default function AddDependentPage() {
@@ -73,11 +73,13 @@ export default function AddDependentPage() {
             onChange={(e) => setGuardianId(Number(e.target.value))}
             className={`${valueInputClass} appearance-none`}
           >
-            {group?.members.map((member) => (
-              <option key={member.id} value={member.id}>
-                {member.id === user?.id ? "Eu mesmo" : member.name}
-              </option>
-            ))}
+            {group?.members
+              .filter((member) => !member.isDependent)
+              .map((member) => (
+                <option key={member.id} value={member.id} className="capitalize">
+                  {member.id === user?.id ? "Eu mesmo" : member.name?.toLowerCase()}
+                </option>
+              ))}
           </select>
         </div>
 

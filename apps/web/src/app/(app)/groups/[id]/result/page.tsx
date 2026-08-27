@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useParams, useRouter } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
 import { Wallet, Gift } from "lucide-react";
@@ -23,11 +23,17 @@ function formatGiftRange(min: number | null, max: number | null): string | null 
 
 export default function ResultPage() {
   const { id } = useParams<{ id: string }>();
+  const searchParams = useSearchParams();
+  const participantId = searchParams.get("participantId");
+  const participantName = searchParams.get("name");
 
   const { data: assignment, isLoading, error } = useQuery({
-    queryKey: ["assignment", id],
+    queryKey: ["assignment", id, participantId],
     queryFn: async () => {
-      const response = await apiClient.get<Assignment>(`/groups/${id}/assignment`);
+      const url = participantId
+        ? `/groups/${id}/assignment?participantId=${participantId}`
+        : `/groups/${id}/assignment`;
+      const response = await apiClient.get<Assignment>(url);
       return response.data;
     },
   });
@@ -46,7 +52,7 @@ export default function ResultPage() {
     : null;
 
   return (
-    <div className="min-h-screen flex flex-col text-white bg-[linear-gradient(120deg,#8B5CF6,#7C3AED_55%,#5B21B6)] px-6 pt-8 pb-10">
+    <div className="min-h-screen flex flex-col text-white bg-brand-gradient px-6 pt-8 pb-10">
       <Link href={`/groups/${id}`} className="text-white/90 mb-10 inline-block">‹ Voltar</Link>
 
       <div className="flex-1 flex flex-col items-center justify-center text-center">
@@ -58,7 +64,9 @@ export default function ResultPage() {
             <div className="bg-primary-dark rounded-28px p-4 mb-5">
               <Image src="/icons/icon.png" alt="" width={96} height={96} />
             </div>
-            <p className="text-xs tracking-widest text-white/70 font-semibold mb-2">VOCÊ TIROU</p>
+            <p className="text-xs tracking-widest text-white/70 font-semibold mb-2">
+              {participantName ? `${participantName.toUpperCase()} TIROU` : "VOCÊ TIROU"}
+            </p>
             <h1 className="font-display text-3xl font-semibold capitalize mb-5 max-w-xs">
               {assignment.receiver.name?.toLowerCase()}
             </h1>

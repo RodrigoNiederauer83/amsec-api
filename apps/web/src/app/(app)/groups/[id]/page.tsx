@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
@@ -9,7 +9,14 @@ import { apiClient } from "@/api/client";
 import { useAuth } from "@/auth/AuthContext";
 import { Avatar } from "@/components/Avatar";
 
-type Member = { id: number; name: string | null; avatarUrl: string | null; suggestionsCount: number };
+type Member = {
+  id: number;
+  name: string | null;
+  avatarUrl: string | null;
+  suggestionsCount: number;
+  isDependent: boolean;
+  guardianId: number | null;
+};
 type GroupDetail = {
   id: number;
   name: string;
@@ -45,7 +52,7 @@ export default function GroupDetailPage() {
   const router = useRouter();
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const dateInputRef = useRef<HTMLInputElement>(null);
+  const [showResultPicker, setShowResultPicker] = useState(false);
 
   const { data: group, isLoading } = useQuery({
     queryKey: ["group", id],
@@ -111,6 +118,14 @@ export default function GroupDetailPage() {
     onError: (error: any) => alert(error.response?.data?.error ?? "Não foi possível sair do grupo."),
   });
 
+  const deleteDependentMutation = useMutation({
+    mutationFn: async (dependentId: number) => {
+      await apiClient.delete(`/groups/${id}/dependents/${dependentId}`);
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["group", id] }),
+    onError: (error: any) => alert(error.response?.data?.error ?? "Não foi possível excluir este dependente."),
+  });
+
   function handleRemoveMember(memberId: number, memberName: string | null) {
     if (confirm(`Remover ${memberName} do grupo?`)) {
       removeMemberMutation.mutate(memberId);
@@ -130,21 +145,34 @@ export default function GroupDetailPage() {
     setDateMutation.mutate(neutralDate.toISOString());
   }
 
+  function handleDeleteDependent(dependentId: number, dependentName: string | null) {
+    if (confirm(`Excluir ${dependentName} do grupo?`)) {
+      deleteDependentMutation.mutate(dependentId);
+    }
+  }
+
+  function handleResultClick(e: React.MouseEvent) {
+    if (myDependents.length === 0) return;
+    e.preventDefault();
+    setShowResultPicker(true);
+  }
+
   if (isLoading || !group) {
     return <div className="max-w-2xl mx-auto px-6 py-10 text-muted">Carregando...</div>;
   }
 
   const isOwner = group.owner.id === user?.id;
+  const myDependents = group.members.filter((m) => m.isDependent && m.guardianId === user?.id);
   const giftRangeText = formatGiftRange(group.minGiftCents, group.maxGiftCents);
   const daysRemaining = group.eventDate ? daysUntil(group.eventDate) : null;
 
   return (
-    <div className="max-w-2xl mx-auto min-h-screen flex flex-col">
-      <div className="text-white px-6 pt-8 pb-7.5 relative overflow-hidden bg-[linear-gradient(120deg,#8B5CF6,#7C3AED_55%,#5B21B6)]">
+    <div className="max-w-2xl mx-auto h-screen flex flex-col">
+      <div className="text-white px-6 pt-6 pb-2 relative overflow-hidden bg-[linear-gradient(120deg,#8B5CF6,#7C3AED_55%,#5B21B6)] shrink-0">
         <div className="absolute pointer-events-none -top-15 -right-12.5 w-45 h-45 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,.16),transparent_70%)]" />
         <div className="relative flex items-start justify-between">
           <Link href="/groups" className="text-white/90 mb-4 inline-block">‹ Voltar</Link>
-          {isOwner && (
+          {isOwner ? (
             <Link
               href={`/groups/${id}/edit`}
               className="bg-white/20 rounded-xl p-2 hover:bg-white/30 transition-colors"
@@ -152,14 +180,23 @@ export default function GroupDetailPage() {
             >
               <Pencil className="w-4 h-4" />
             </Link>
+          ) : (
+            <button
+              onClick={handleLeaveGroup}
+              disabled={leaveGroupMutation.isPending}
+              className="bg-white/20 rounded-xl p-2 hover:bg-white/30 transition-colors disabled:opacity-50"
+              aria-label="Sair do grupo"
+            >
+              <LogOut className="w-4 h-4" />
+            </button>
           )}
         </div>
         <h1 className="relative font-display text-2xl font-semibold capitalize">{group.name.toLowerCase()}</h1>
         <p className="relative text-white/80 text-sm mt-1 capitalize">Responsável: {group.owner.name?.toLowerCase()}</p>
       </div>
 
-      <div className="px-6 -mt-4 flex-1">
-        <div className="mb-3 bg-white border border-[#EFE5FC] rounded-[1.375em] p-4 shadow-[0_10px_24px_rgba(46,16,101,0.07)]">
+      <div className="px-6 -mt-6 flex-1 flex flex-col overflow-hidden">
+        <div className="bg-white border border-[#EFE5FC] rounded-[1.375em] p-4 shadow-[0_10px_24px_rgba(46,16,101,0.07)] shrink-0">
           <div className="flex gap-2.5">
             <div className="flex-1 py-3 px-3.25 rounded-2xl bg-[linear-gradient(150deg,#F9F4FF,#F2E9FE)]">
               <p className="flex items-center gap-1 text-xs text-primary font-bold mb-1">
@@ -189,7 +226,7 @@ export default function GroupDetailPage() {
                 <input
                   type="date"
                   onChange={handleDateChange}
-                  className="absolute inset-0 w-full h-1/2 opacity-0 cursor-pointer"
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                 />
               </div>
               <button onClick={() => inviteMutation.mutate()} disabled={inviteMutation.isPending}
@@ -210,7 +247,8 @@ export default function GroupDetailPage() {
         {group.hasDraw && (
           <Link
             href={`/groups/${id}/result`}
-            className="flex items-center justify-between text-white mt-3.5 mb-6 p-4 rounded-[20px] bg-[linear-gradient(120deg,#8B5CF6,#7C3AED_55%,#5B21B6)] shadow-[0_10px_24px_rgba(124,58,237,0.3)]"
+            onClick={handleResultClick}
+            className="flex items-center justify-between text-white mt-3 mb-4 p-4 rounded-[20px] bg-brand-gradient shadow-[0_10px_24px_rgba(124,58,237,0.3)] shrink-0"
           >
             <span className="flex items-center gap-3">
               <span className="flex items-center justify-center shrink-0 w-9.5 h-9.5 rounded-[13px] bg-white/18">
@@ -225,7 +263,7 @@ export default function GroupDetailPage() {
           </Link>
         )}
 
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-3 shrink-0">
           <h2 className="font-display font-semibold text-primary-dark">Integrantes ({group.members.length})</h2>
           {isOwner && (
             <Link href={`/groups/${id}/dependents`} className="text-xs text-primary font-semibold">
@@ -233,13 +271,21 @@ export default function GroupDetailPage() {
             </Link>
           )}
         </div>
-        <div className="space-y-2 mb-8">
+
+        <div className="space-y-2 overflow-y-auto pb-4 pr-1 min-h-0">
           {group.members.map((member) => (
             <div key={member.id} className="flex items-center justify-between gap-2 bg-surface rounded-xl p-3 shadow-card">
               <div className="flex items-center gap-3">
                 <Avatar name={member.name} avatarUrl={member.avatarUrl} />
                 <div>
-                  <p className="text-primary-dark font-medium capitalize">{member.name?.toLowerCase()}</p>
+                  <p className="text-primary-dark font-medium capitalize flex items-center gap-1.5">
+                    {member.name?.toLowerCase()}
+                    {member.isDependent && (
+                      <span className="text-[10px] bg-primary/10 text-primary rounded-full px-1.5 py-0.5 font-semibold normal-case">
+                        dependente
+                      </span>
+                    )}
+                  </p>
                   <p className="text-xs text-muted">
                     {member.id === group.owner.id ? "Organizador · " : ""}
                     {member.suggestionsCount} sugest{member.suggestionsCount === 1 ? "ão" : "ões"}
@@ -253,26 +299,76 @@ export default function GroupDetailPage() {
                 >
                   <Eye className="w-3 h-3" /> Sugestões
                 </Link>
-                {isOwner && member.id !== group.owner.id && (
-                  <button
-                    onClick={() => handleRemoveMember(member.id, member.name)}
-                    disabled={removeMemberMutation.isPending}
-                    aria-label="Remover membro"
-                    className="bg-white rounded-lg p-1.5"
-                  >
-                    <X className="w-3.5 h-3.5 text-red-600" />
-                  </button>
-                )}
+
+                {member.isDependent
+                  ? (isOwner || member.guardianId === user?.id) && (
+                    <button
+                      onClick={() => handleDeleteDependent(member.id, member.name)}
+                      disabled={deleteDependentMutation.isPending}
+                      aria-label="Excluir dependente"
+                      className="bg-white rounded-lg p-1.5"
+                    >
+                      <X className="w-3.5 h-3.5 text-red-600" />
+                    </button>
+                  )
+                  : isOwner && member.id !== group.owner.id && (
+                    <button
+                      onClick={() => handleRemoveMember(member.id, member.name)}
+                      disabled={removeMemberMutation.isPending}
+                      aria-label="Remover membro"
+                      className="bg-white rounded-lg p-1.5"
+                    >
+                      <X className="w-3.5 h-3.5 text-red-600" />
+                    </button>
+                  )}
               </div>
             </div>
           ))}
         </div>
       </div>
-      <div className="px-6 pb-10" style={{ paddingBottom: "max(2.5rem, env(safe-area-inset-bottom))" }}>
+      <div className="px-6 pb-10 shrink-0" style={{ paddingBottom: "max(2.5rem, env(safe-area-inset-bottom))" }}>
         <Link href={`/groups/${id}/suggestions`} className="block text-center w-full border border-surface text-primary rounded-2xl py-3.5 font-semibold">
           Bisbilhotar sugestões
         </Link>
       </div>
+      {showResultPicker && (
+        <div
+          className="fixed inset-0 bg-black/40 flex items-end sm:items-center justify-center z-50"
+          onClick={() => setShowResultPicker(false)}
+        >
+          <div
+            className="bg-white rounded-t-3xl sm:rounded-3xl w-full sm:max-w-sm p-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="font-display text-lg font-semibold text-primary-dark mb-4">
+              Ver resultado de quem?
+            </h3>
+            <div className="space-y-2">
+              <Link
+                href={`/groups/${id}/result`}
+                className="block bg-surface rounded-xl p-3 text-primary-dark font-medium"
+              >
+                Eu mesmo
+              </Link>
+              {myDependents.map((dependent) => (
+                <Link
+                  key={dependent.id}
+                  href={`/groups/${id}/result?participantId=${dependent.id}&name=${encodeURIComponent(dependent.name ?? "")}`}
+                  className="block bg-surface rounded-xl p-3 text-primary-dark font-medium capitalize"
+                >
+                  {dependent.name?.toLowerCase()}
+                </Link>
+              ))}
+            </div>
+            <button
+              onClick={() => setShowResultPicker(false)}
+              className="w-full text-muted font-medium mt-4 py-2"
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

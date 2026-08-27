@@ -187,7 +187,7 @@ export const getGroupDetail: RequestHandler = async (req, res) => {
     where: { id: groupId },
     include: {
       owner: { select: { id: true, name: true } },
-      members: { include: { user: { select: { id: true, name: true, avatarUrl: true } } } },
+      members: { include: { user: { select: { id: true, name: true, avatarUrl: true, isDependent: true, guardianId: true } } } },
       _count: { select: { assignments: true } },
     },
   });
@@ -678,6 +678,14 @@ export const leaveGroup: RequestHandler = async (req, res) => {
     });
   }
 
+  const stillHasDependents = await hasDependentsInGroup(groupId, userId);
+
+  if (stillHasDependents) {
+    return res.status(409).json({
+      error: "Você ainda é responsável por dependentes neste grupo. Exclua-os antes de sair.",
+    });
+  }
+
   const isMember = await assertIsMember(groupId, userId);
 
   if (!isMember) {
@@ -713,6 +721,14 @@ export const removeMember: RequestHandler = async (req, res) => {
     });
   }
 
+  const stillHasDependents = await hasDependentsInGroup(groupId, targetUserId);
+
+  if (stillHasDependents) {
+    return res.status(409).json({
+      error: "Este membro ainda é responsável por dependentes neste grupo. Peça para excluí-los antes de removê-lo.",
+    });
+  }
+
   const isMember = await assertIsMember(groupId, targetUserId);
 
   if (!isMember) {
@@ -741,10 +757,17 @@ export const createDependent: RequestHandler = async (req, res) => {
     return res.status(403).json({ error: "Apenas o responsável pelo grupo pode adicionar dependentes." });
   }
 
-  const isGuardianMember = await assertIsMember(group.id, guardianId);
+  const guardianMembership = await prisma.groupMember.findUnique({
+    where: { groupId_userId: { groupId: group.id, userId: guardianId } },
+    include: { user: { select: { isDependent: true } } },
+  });
 
-  if (!isGuardianMember) {
+  if (!guardianMembership) {
     return res.status(422).json({ error: "O responsável pelo dependente precisa ser membro do grupo." });
+  }
+
+  if (guardianMembership.user.isDependent) {
+    return res.status(422).json({ error: "O responsável indicado não pode ser, ele mesmo, um dependente." });
   }
 
   const dependent = await prisma.$transaction(async (tx) => {
@@ -764,6 +787,44 @@ export const createDependent: RequestHandler = async (req, res) => {
     name: dependent.name,
     guardianId: dependent.guardianId,
   });
+};
+
+export const deleteDependent: RequestHandler = async (req, res) => {
+  const group = req.group!;
+  const groupId = group.id;
+  const dependentId = Number(req.params.dependentId);
+  const requesterId = req.userId!;
+
+  const dependent = await prisma.user.findUnique({ where: { id: dependentId } });
+
+  if (!dependent || !dependent.isDependent) {
+    return res.status(404).json({ error: "Dependente não encontrado." });
+  }
+
+  const isMemberOfGroup = await assertIsMember(groupId, dependentId);
+
+  if (!isMemberOfGroup) {
+    return res.status(404).json({ error: "Este dependente não faz parte deste grupo." });
+  }
+
+  const isOwner = group.ownerId === requesterId;
+  const isGuardian = dependent.guardianId === requesterId;
+
+  if (!isOwner && !isGuardian) {
+    return res.status(403).json({
+      error: "Apenas o responsável pelo grupo ou o responsável pelo dependente pode excluí-lo.",
+    });
+  }
+
+  const isActive = await hasActiveAssignment(groupId, dependentId, group.eventDate);
+
+  if (isActive) {
+    return res.status(409).json({ error: "Não é possível excluir um dependente enquanto participar de um sorteio ativo." });
+  }
+
+  await prisma.user.delete({ where: { id: dependentId } });
+
+  return res.status(204).send();
 };
 
 //#region Funções auxiliares
@@ -790,5 +851,16 @@ async function hasActiveAssignment(groupId: number, userId: number, eventDate: D
   });
 
   return !!assignment;
+}
+
+async function hasDependentsInGroup(groupId: number, guardianId: number): Promise<boolean> {
+  const count = await prisma.user.count({
+    where: {
+      isDependent: true,
+      guardianId,
+      memberships: { some: { groupId } },
+    },
+  });
+  return count > 0;
 }
 //#endregion

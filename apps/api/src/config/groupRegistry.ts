@@ -415,3 +415,32 @@ registry.registerPath({
     },
   },
 });
+
+registry.registerPath({
+  method: "delete",
+  path: "/groups/{id}/dependents/{dependentId}",
+  summary: "Exclui um dependente do grupo.",
+  tags: ["Groups"],
+  security: [{ bearerAuth: [] }],
+  request: {
+    params: z.object({
+      id: z.string().openapi({ example: "1" }),
+      dependentId: z.string().openapi({ example: "5" }),
+    }),
+  },
+  responses: {
+    204: { description: "Dependente excluído com sucesso." },
+    403: {
+      description: "Apenas o responsável pelo grupo ou pelo dependente pode excluí-lo.",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+    404: {
+      description: "Dependente não encontrado, ou não faz parte deste grupo.",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+    409: {
+      description: "O dependente participa de um sorteio ativo.",
+      content: { "application/json": { schema: errorResponseSchema } },
+    },
+  },
+});
