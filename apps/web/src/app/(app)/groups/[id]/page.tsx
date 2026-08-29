@@ -89,14 +89,26 @@ export default function GroupDetailPage() {
   });
 
   const drawMutation = useMutation({
-    mutationFn: async () => {
-      await apiClient.post(`/groups/${id}/draw`);
+    mutationFn: async (force?: boolean) => {
+      await apiClient.post(`/groups/${id}/draw${force ? "?force=true" : ""}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["group", id] });
       alert("Sorteio realizado! Agora cada participante já pode ver o resultado.");
     },
-    onError: (error: any) => alert(error.response?.data?.error ?? "Não foi possível realizar o sorteio."),
+    onError: (error: any) => {
+      const status = error.response?.status;
+      const message = error.response?.data?.error ?? "Não foi possível realizar o sorteio.";
+
+      if (status === 409) {
+        if (confirm("O sorteio já foi visualizado por algum participante. Deseja forçar um novo sorteio mesmo assim?")) {
+          drawMutation.mutate(true);
+        }
+        return;
+      }
+
+      alert(message);
+    },
   });
 
   const removeMemberMutation = useMutation({
@@ -235,7 +247,7 @@ export default function GroupDetailPage() {
                 <UserPlus className="w-3.5 h-3.5" /> Convidar
               </button>
               <button
-                onClick={() => drawMutation.mutate()}
+                onClick={() => drawMutation.mutate(undefined)}
                 disabled={drawMutation.isPending || !group.eventDate || group.members.length < 3}
                 className="flex items-center justify-center gap-1.5 flex-1 text-[10px] text-primary bg-surface rounded-xl py-2 font-semibold disabled:opacity-40"
               >
