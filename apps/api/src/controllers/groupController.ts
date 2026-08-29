@@ -614,9 +614,16 @@ export const deleteGroup: RequestHandler = async (req, res) => {
     return res.status(403).json({ error: "Apenas o responsável pode excluir o grupo." });
   }
 
-  await prisma.group.delete({
-    where: { id: groupId },
+  const dependents = await prisma.user.findMany({
+    where: { isDependent: true, memberships: { some: { groupId } } },
+    select: { id: true },
   });
+  const dependentIds = dependents.map((d) => d.id);
+
+  await prisma.$transaction([
+    prisma.user.deleteMany({ where: { id: { in: dependentIds } } }),
+    prisma.group.delete({ where: { id: groupId } }),
+  ]);
 
   return res.status(204).send();
 }
