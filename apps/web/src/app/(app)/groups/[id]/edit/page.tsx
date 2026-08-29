@@ -127,6 +127,13 @@ export default function EditGroupPage() {
         </button>
       </form>
 
+      <Link
+        href={`/groups/${id}/exclusions`}
+        className="block text-center w-full text-primary font-semibold py-3.5"
+      >
+        Gerenciar exclusões do sorteio
+      </Link>
+
       <button
         onClick={handleDelete}
         disabled={deleteMutation.isPending}
