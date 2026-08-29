@@ -6,7 +6,9 @@
   "scripts": {
     "test": "jest",
     "dev": "tsx watch --inspect src/server.ts",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "build": "tsc",
+    "start": "node dist/server.js"
   },
   "keywords": [],
   "author": "",

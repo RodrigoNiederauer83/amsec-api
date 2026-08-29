@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { Request, RequestHandler, Response } from "express";
 import { prisma } from "../prisma/client";
 import { generateDraw } from "../utils/drawAlgorithm";
@@ -15,7 +16,7 @@ export async function createGroup(req: Request, res: Response) {
   try {
     // Escopo transacional
     // Faz a criação do Group e do Owner como GroupMember juntos, se falhar as duas são desfeitas;
-    const group = await prisma.$transaction(async (tx) => {
+    const group = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const newGroup = await tx.group.create({
         data: { name, ownerId },
       });
@@ -97,7 +98,7 @@ export const getInvitePreview: RequestHandler = async (req, res) => {
     groupId: invite.group.id,
     groupName: invite.group.name,
     owner: invite.group.owner,
-    members: invite.group.members.map((m) => m.user),
+    members: invite.group.members.map((m: { user: { id: number; name: string | null } }) => m.user),
   });
 };
 
@@ -163,7 +164,12 @@ export const searchGroups: RequestHandler = async (req, res) => {
   });
 
   return res.status(200).json(
-    groups.map((g) => ({
+    groups.map((g: {
+      id: number; name: string; owner: { id: number; name: string | null };
+      eventDate: Date | null; minGiftCents: number | null; maxGiftCents: number | null;
+      eventAddress: string | null; eventLat: number | null; eventLng: number | null;
+      members: { id: number }[]; _count: { assignments: number };
+    }) => ({
       id: g.id,
       name: g.name,
       owner: g.owner,
@@ -196,7 +202,7 @@ export const getGroupDetail: RequestHandler = async (req, res) => {
     return res.status(404).json({ error: "Grupo não encontrado." });
   }
 
-  const isMember = group.members.some((m) => m.userId === userId);
+  const isMember = group.members.some((m: { userId: number }) => m.userId === userId);
 
   if (!isMember) {
     return res.status(403).json({ error: "Você não faz parte deste grupo." });
@@ -207,13 +213,13 @@ export const getGroupDetail: RequestHandler = async (req, res) => {
     where: { groupId },
     _count: { id: true },
   });
-  const countMap = new Map(suggestionCounts.map((s) => [s.userId, s._count.id]));
+  const countMap = new Map(suggestionCounts.map((s: { userId: number; _count: { id: number } }) => [s.userId, s._count.id]));
 
   return res.status(200).json({
     id: group.id,
     name: group.name,
     owner: group.owner,
-    members: group.members.map((m) => ({
+    members: group.members.map((m: { user: { id: number; name: string | null; avatarUrl: string | null; isDependent: boolean; guardianId: number | null } }) => ({
       ...m.user,
       suggestionsCount: countMap.get(m.user.id) ?? 0,
     })),
@@ -399,7 +405,7 @@ export const drawGroup: RequestHandler = async (req, res) => {
   }
 
   const existingAssignments = await prisma.assignment.findMany({ where: { groupId } });
-  const alreadyViewed = existingAssignments.some((a) => a.viewedAt !== null);
+  const alreadyViewed = existingAssignments.some((a: { viewedAt: Date | null }) => a.viewedAt !== null);
 
   if (alreadyViewed && !force) {
     return res.status(409).json({
@@ -411,7 +417,7 @@ export const drawGroup: RequestHandler = async (req, res) => {
     where: { groupId },
     include: { user: { select: { id: true, email: true, isDependent: true } } },
   });
-  const memberIds = members.map((m) => m.userId);
+  const memberIds = members.map((m: { userId: number }) => m.userId);
 
   if (memberIds.length < 3) {
     return res.status(422).json({ error: "É necessário pelo menos 3 membros para realiza o sorteio." });
@@ -437,7 +443,7 @@ export const drawGroup: RequestHandler = async (req, res) => {
   ]);
 
   const notifiableMembers = members
-    .map((m) => m.user)
+    .map((m: { user: { id: number; email: string | null; isDependent: boolean } }) => m.user)
     .filter((user) => !user.isDependent && user.email);
 
   try {
@@ -770,7 +776,7 @@ export const createDependent: RequestHandler = async (req, res) => {
     return res.status(422).json({ error: "O responsável indicado não pode ser, ele mesmo, um dependente." });
   }
 
-  const dependent = await prisma.$transaction(async (tx) => {
+  const dependent = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
     const newDependent = await tx.user.create({
       data: { name, isDependent: true, guardianId },
     });
